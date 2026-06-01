@@ -1,0 +1,95 @@
+﻿/* ═══════════════════════════════════════
+   ③ IMAGE SEARCH (以图搜款)
+═══════════════════════════════════════ */
+.isearch-body{padding:16px}
+
+/* Tab buttons */
+.tab-btn{
+  padding:8px 16px;border:none;background:transparent;
+  border-bottom:2px solid transparent;
+  color:var(--text-soft);font-size:13px;font-weight:600;
+  cursor:pointer;transition:all .2s;flex:1;
+}
+.tab-btn.on{
+  color:var(--purple);border-bottom-color:var(--purple)
+}
+
+.isearch-upload{
+  border:2px dashed var(--purple);background:var(--purple-light);
+  border-radius:var(--rLg);padding:32px 20px;
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  cursor:pointer;transition:all .18s;margin-bottom:16px;
+}
+.isearch-upload:active{border-color:var(--pink);background:var(--pink-light)}
+.isearch-upload-icon{
+  width:64px;height:64px;border-radius:20px;
+  background:linear-gradient(135deg,var(--pink),var(--purple));
+  display:flex;align-items:center;justify-content:center;
+}
+.isearch-upload-icon svg{width:30px;height:30px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round}
+.isearch-upload-title{font-size:15px;font-weight:700;color:var(--text-dark)}
+.isearch-upload-sub{font-size:12px;color:var(--text-soft);text-align:center;line-height:1.5}
+.isearch-upload-btn{
+  background:linear-gradient(135deg,var(--pink),var(--purple));
+  color:#fff;border:none;border-radius:var(--rPill);
+  padding:8px 22px;font-size:13px;font-weight:700;cursor:pointer;margin-top:4px;
+}
+
+.examples-label{font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:10px}
+.example-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.ex-chip{
+  display:flex;align-items:center;gap:6px;
+  background:var(--white);border:.5px solid var(--border);
+  border-radius:var(--rPill);padding:7px 12px;cursor:pointer;
+  font-size:12px;font-weight:600;color:var(--text-mid);
+  transition:all .15s;
+}
+.ex-chip:active{background:var(--orange-light);border-color:var(--orange);color:var(--orange)}
+.ex-chip .ex-emoji{font-size:16px}
+
+/* spinner state */
+.isearch-spinner{display:none;flex-direction:column;align-items:center;gap:14px;padding:40px 0}
+.isearch-spinner.show{display:flex}
+.isearch-spinner p{font-size:13px;color:var(--text-mid);font-weight:500}
+
+/* results state */
+.isearch-results{display:none;flex-direction:column;gap:14px}
+.isearch-results.show{display:flex}
+
+.detected-card{
+  background:linear-gradient(135deg,var(--pink-light),var(--purple-light));
+  border-radius:var(--rMd);border:.5px solid var(--border);
+  padding:14px;display:flex;align-items:center;gap:12px;
+}
+.detected-thumb{
+  width:60px;height:60px;border-radius:14px;
+  background:var(--white);display:flex;align-items:center;justify-content:center;
+  font-size:28px;flex-shrink:0;border:.5px solid var(--border);
+}
+.detected-info .detected-label{font-size:11px;color:var(--text-soft)}
+.detected-info .detected-name{font-size:14px;font-weight:700;color:var(--text-dark);margin-top:2px}
+.detected-confidence{
+  margin-left:auto;text-align:right;
+}
+.detected-confidence .conf-num{font-size:18px;font-weight:800;color:var(--orange)}
+.detected-confidence .conf-label{font-size:10px;color:var(--text-soft)}
+
+.matches-label{font-size:13px;font-weight:700;color:var(--text-dark)}
+.matches-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.match-card{border-radius:var(--rMd);border:.5px solid var(--border);background:var(--white);overflow:hidden;cursor:pointer;transition:transform .13s}
+.match-card:active{transform:scale(.96)}
+.match-thumb{height:90px;display:flex;align-items:center;justify-content:center;font-size:38px}
+.match-info{padding:8px 10px 10px}
+.match-name{font-size:12px;font-weight:700;color:var(--text-dark)}
+.match-score-bar{height:4px;background:var(--border);border-radius:2px;margin:5px 0 4px;overflow:hidden}
+.match-score-fill{height:100%;background:var(--orange);border-radius:2px}
+.match-meta{display:flex;justify-content:space-between;align-items:center}
+.match-pct{font-size:10px;color:var(--orange);font-weight:700}
+.match-price{font-size:11px;font-weight:700;color:var(--text-dark)}
+
+.isearch-reset-btn{
+  border:1.5px solid var(--border);background:var(--white);color:var(--text-mid);
+  border-radius:var(--rMd);padding:12px;width:100%;
+  font-size:13px;cursor:pointer;font-family:inherit;font-weight:600;
+}
+

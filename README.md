@@ -1,0 +1,281 @@
+# 指上谈兵 / Nail AI 🎨
+
+**AI 驱动的美甲设计与虚拟试戴系统**
+
+集成 YOLO 指甲分割、生成式 AI 设计、LLM 提示优化，支持参数化指甲形状、色彩匹配和交互式编辑。
+
+## 🎯 核心功能
+
+### 🎨 AI 设计生成
+- **文生图设计**：使用 Qwen 生成精美美甲设计
+- **智能提示词优化**：DeepSeek 大模型优化用户自然语言输入
+- **自动指甲提取**：轮廓检测智能分离预览图中的 5 个指甲
+- **两步确认工作流**：预览设计 → 确认提取指甲模具
+
+### 💅 虚拟试戴
+- **智能指甲分割**：YOLOv8-seg 精确检测用户指甲（支持张开手和握拳）
+- **参数化指甲形状**：圆形/尖形/方形，可调长宽比
+- **交互式编辑器**：自动检测 + 手动微调（旋转矩形拖拽）
+- **LAB 色彩匹配**：自适应肤色的自然色彩混合
+
+### 🏠 款式库与发现
+- **25 款精选设计**：包含原始预览图和高质量详细设计图
+- **以图搜款**：上传参考图找相似款式
+- **实时热门榜**：小红书热度数据集成
+- **收藏与追踪**：保存喜爱款式，记录试戴历史
+
+---
+
+## 🚀 快速开始
+
+### 前置要求
+- Python 3.8+
+- Node.js 14+ (HTTP 服务器)
+- GPU 可选（使用 CPU 也可运行）
+
+### 后端启动
+```bash
+cd backend
+pip install -r requirements.txt
+python main.py
+# 运行在 http://localhost:8000
+```
+
+### 前端启动
+```bash
+# 项目根目录
+npx http-server -p 5000 --default-file 指上谈兵.html
+# 或用 Python: python -m http.server 5000
+
+# 访问 http://localhost:5000
+```
+
+⚠️ **重要**：不要直接用 `file://` 协议打开 HTML，必须用 HTTP 服务器！
+
+---
+
+## 📊 技术栈
+
+| 层级 | 技术 | 用途 |
+|------|------|------|
+| **前端** | HTML/CSS/JavaScript | UI 和交互逻辑 |
+| **图像处理** | OpenCV | 图像预处理和轮廓检测 |
+| **指甲检测** | YOLOv8-seg (22.8 MB) | 实例分割和指甲定位 |
+| **手部检测** | MediaPipe Hand Landmarker | 手指识别和姿态估计 |
+| **后端框架** | FastAPI | REST API 服务 |
+| **LLM** | DeepSeek-V4-Pro API | 提示词优化 |
+| **图像生成** | Qwen-Image-2512 API | 文生图美甲设计 |
+| **色彩空间** | LAB 色彩混合 | 自然色彩适应 |
+
+---
+
+## 🔌 关键 API 端点
+
+```
+POST /api/generate-nail-design         # AI 生成设计
+POST /api/confirm-nail-design          # 确认并提取指甲
+POST /api/detect-nails-preview         # 检测用户指甲
+POST /api/confirm-crop                 # 裁剪确认
+POST /api/try-on                       # 虚拟试戴
+GET  /api/designs                      # 获取款式库（25 款）
+```
+
+---
+
+## 💡 核心算法
+
+### 指甲分割
+- **检测方法**：YOLOv8 实例分割 + MediaPipe 手指识别
+- **降级方案**：当分割不确定时使用等分法（水平分成 5 列）
+- **特殊处理**：握拳姿势的自动检测和适应
+
+### 虚拟试戴变换
+- **形状约束**：参数化指甲轮廓（椭圆/尖形/方形）
+- **透视变换**：将设计模具映射到用户指甲形状
+- **色彩混合**：LAB 色空间自适应用户肤色
+
+### 提示词优化
+- **模板机制**：保证结构一致的降级模板
+- **LLM 增强**：DeepSeek 优化用户自然语言
+- **布局要求**：显式指定 5 个指甲水平排列、适当间距
+
+---
+
+## 📁 项目结构
+
+### Frontend
+| 文件 | 说明 |
+|------|------|
+| `指上谈兵.html` | 主应用文件（所有屏幕） |
+| `styles/main.css` | CSS 入口 |
+| `scripts/data.js` | 25 款款式数据 + 全局状态 |
+| `scripts/detail.js` | 款式详情页逻辑 |
+| `scripts/try-on.js` | 虚拟试戴逻辑 |
+| `scripts/image-search.js` | 以图搜款 + 检测美甲 |
+| `scripts/design-gen.js` | AI 设计生成 |
+| `scripts/trending.js` | 热门款式 + 小红书集成 |
+| `scripts/gallery.js` | 款式库渲染和过滤 |
+| `scripts/init.js` | 应用启动初始化 |
+
+### Backend
+| 文件 | 说明 |
+|------|------|
+| `main.py` | FastAPI 服务器 + 路由 |
+| `design_generator.py` | AI 设计生成管道 |
+| `nail_tryon_v2.py` | 试戴算法（形状变换+色彩混合） |
+| `nail_seg.py` | YOLOv8-seg 指甲分割 |
+| `hand_detector.py` | MediaPipe 手部检测 |
+| `models/nails_seg_yolov8.pt` | YOLOv8 实例分割模型 |
+| `molds/{design_id}/` | 提取的指甲模具 (PNG) |
+
+---
+
+## 🎯 工作流程
+
+### 1. AI 设计生成流程
+```
+用户输入 (中文描述)
+    ↓
+DeepSeek 提示词优化
+    ↓
+Qwen 文生图 (5 个指甲并排)
+    ↓
+自动检测和提取指甲 (轮廓检测)
+    ↓
+保存到 molds/{design_id}/
+    ↓
+可立即用于虚拟试戴
+```
+
+### 2. 虚拟试戴流程
+```
+用户手部照片
+    ↓
+YOLO 指甲分割 + 手指识别
+    ↓
+交互式手动调整 (可选)
+    ↓
+加载设计模具
+    ↓
+参数化形状变换
+    ↓
+LAB 色彩混合
+    ↓
+显示试戴效果
+```
+
+### 3. 款式库预处理
+```
+25 款设计 (包含详细图)
+    ↓
+批量自动提取指甲
+    ↓
+保存 5 个模具/款式
+    ↓
+已准备好试戴
+```
+
+---
+
+## 🔧 配置说明
+
+### 环境变量 (.env)
+```
+MODELSCOPE_TOKEN=你的_modelscope_token
+DEEPSEEK_API_KEY=你的_deepseek_api_key
+```
+
+### 关键参数
+- **指甲检测**：YOLOv8 置信度 0.5
+- **色彩混合**：LAB 色空间 alpha=0.5
+- **形状约束**：目标最大边长 280px
+- **HTTP 服务器**：前端运行在 5000 端口，后端 8000 端口
+
+---
+
+## 📈 性能指标
+
+| 操作 | 耗时 | 备注 |
+|------|------|------|
+| AI 设计生成 | 30-60s | 包括提示词优化 |
+| 指甲提取 | 1-2s | 轮廓检测 |
+| 虚拟试戴 | 2-3s | YOLO + 形状变换 |
+| 以图搜款 | <1s | 本地向量搜索 |
+
+---
+
+## 🔄 开发建议
+
+### 下一步改进
+- [ ] YOLO 模型重训（添加握拳数据）
+- [ ] 实时视频试戴
+- [ ] 多手检测支持
+- [ ] AR 集成（真实设备预览）
+- [ ] 色彩空间高级优化
+
+### 数据更新
+- 添加新款式：放入 `款式图/` 目录，更新 `designs.json`
+- 更新热门榜：修改 `xhs-keyword-heat.js` 的热度分数
+- 调整试戴效果：在 `nail_tryon_v2.py` 中调参
+
+---
+
+## Structure
+
+- `指上谈兵.html` - main page markup and app screens
+- `styles/main.css` - stylesheet entry file with imports
+- `styles/base/` - design tokens and reset styles
+- `styles/layout/` - phone shell, screen layout, top/bottom navigation
+- `styles/components/` - shared cards, chips, buttons, toast, sheets
+- `styles/screens/` - styles for each app screen
+- `scripts/data.js` - style data and shared state
+- `scripts/navigation.js` - screen navigation
+- `scripts/gallery.js` - gallery rendering and filters
+- `scripts/detail.js` - detail screen interactions
+- `scripts/try-on.js` - AI try-on simulation
+- `scripts/image-search.js` - image search simulation
+- `scripts/wishlist.js` - wishlist state and rendering
+- `scripts/profile.js` - profile counters
+- `scripts/skin-sheet.js` - skin tone sheet interactions
+- `scripts/toast.js` - toast messages
+- `scripts/init.js` - startup calls
+
+Open `指上谈兵.html` in a browser to run the app.
+
+## 小红书实时热门
+
+今日热门榜不再使用假数据。前端会读取 `scripts/xhs-config.js` 里的 `endpoint`，请求你自己的后端接口，然后按小红书流量指标排序。
+
+前端期望接口返回：
+
+```json
+{
+  "updatedAt": "2026-05-24T12:00:00+08:00",
+  "items": [
+    {
+      "name": "法式星芒裸粉",
+      "sub": "裸粉 · 星光钻饰",
+      "price": "¥229",
+      "image": "款式图/2277d6f9d82264fa6a3c986373e5e44c2292083.webp",
+      "xhsUrl": "https://www.xiaohongshu.com/...",
+      "viewCount": 12000,
+      "likeCount": 880,
+      "collectCount": 360,
+      "commentCount": 96,
+      "noteCount": 42
+    }
+  ]
+}
+```
+
+如果接口已经计算好热度，可以直接返回 `heatScore`。否则前端会根据浏览、点赞、收藏、评论、笔记数量计算排序。
+
+### 学生版关键词热度
+
+如果没有小红书开发者账号或后端接口，项目会自动启用学生版关键词热度：
+
+- `scripts/xhs-config.js` 里的 `keywordFallback: true`
+- `scripts/xhs-keyword-heat.js` 里维护关键词和 `score`
+- `scripts/xhs-keyword-heat.js` 里的 `XHS_STYLE_KEYWORDS` 会把关键词匹配到本地款式图
+
+这不是官方实时数据，但适合课堂原型和作品展示。要更新榜单，只需要把小红书里观察到更热门的关键词分数调高。

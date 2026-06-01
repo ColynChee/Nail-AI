@@ -1,0 +1,14 @@
+INFO:     127.0.0.1:65144 - "GET /api/designs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:65146 - "GET /api/designs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59754 - "POST /api/try-on?design_image=%E6%AC%BE%E5%BC%8F%E5%9B%BE%2F43cc4ced977a3dd271f60ee2f05607772681747.webp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57064 - "POST /api/try-on?design_image=%E6%AC%BE%E5%BC%8F%E5%9B%BE%2F43cc4ced977a3dd271f60ee2f05607772681747.webp&color=%23C0392B HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57064 - "POST /api/try-on?design_image=%E6%AC%BE%E5%BC%8F%E5%9B%BE%2F43cc4ced977a3dd271f60ee2f05607772681747.webp&color=%23E8A0BF HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49996 - "POST /api/try-on?design_image=%E6%AC%BE%E5%BC%8F%E5%9B%BE%2F43cc4ced977a3dd271f60ee2f05607772681747.webp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53708 - "POST /api/try-on?design_image=%E6%AC%BE%E5%BC%8F%E5%9B%BE%2F5591229138c4e7e1d183b59be442d9dc2267735.webp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54101 - "GET /api/designs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63225 - "GET /api/designs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49693 - "POST /api/try-on?design_image=%E6%AC%BE%E5%BC%8F%E5%9B%BE%2F6c857edd85a5fa4bcec59698fe9416cb1913981.webp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57506 - "GET /api/designs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64184 - "POST /api/try-on?design_image=%E6%AC%BE%E5%BC%8F%E5%9B%BE%2F2277d6f9d82264fa6a3c986373e5e44c2292083.webp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59787 - "POST /api/try-on?design_image=%E6%AC%BE%E5%BC%8F%E5%9B%BE%2F2277d6f9d82264fa6a3c986373e5e44c2292083.webp&color=%238E6FB0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59787 - "POST /api/try-on?design_image=%E6%AC%BE%E5%BC%8F%E5%9B%BE%2F2277d6f9d82264fa6a3c986373e5e44c2292083.webp&color=%232C2C2C HTTP/1.1" 200 OK

@@ -1,0 +1,41 @@
+﻿/* ═══════════════════════════════════════
+   TOKENS & RESET
+═══════════════════════════════════════ */
+:root {
+  --orange:       #FF6B35;
+  --orange-light: #FFF0EB;
+  --orange-mid:   #FFD4C2;
+  --orange-deep:  #CC4A15;
+  --pink:         #FF8FAB;
+  --pink-light:   #FFF0F5;
+  --pink-deep:    #C2185B;
+  --purple:       #C084FC;
+  --purple-light: #F5F0FF;
+  --teal:         #2DD4BF;
+  --teal-light:   #F0FDFB;
+  --cream:        #FDF8F5;
+  --warm-gray:    #F7F3F0;
+  --text-dark:    #2C1810;
+  --text-mid:     #6B4C40;
+  --text-soft:    #A0796A;
+  --border:       #F0E8E4;
+  --white:        #FFFFFF;
+  --rSm:  10px;
+  --rMd:  14px;
+  --rLg:  20px;
+  --rXl:  28px;
+  --rPill:100px;
+  --shadow-card: 0 2px 12px rgba(44,24,16,0.07);
+  --shadow-float:0 8px 32px rgba(255,107,53,0.28);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:'Noto Sans SC','Nunito',sans-serif;
+  background:#EDE5DF;
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  padding:24px 0 48px;
+}
+

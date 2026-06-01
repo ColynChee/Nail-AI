@@ -1,0 +1,204 @@
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List, Optional, Dict
+import json
+import cv2
+import numpy as np
+import io
+import base64
+
+from hand_detector import detect_hands_from_array, HandDetector
+from llm_client import LLMClient
+from nail_overlay import apply_nail_overlay_from_array
+from analytics import log_try_on, log_analyze_hand, get_analytics, get_design_analytics
+
+app = FastAPI(title="美甲AI试戴后端服务", version="1.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+with open("designs.json", "r", encoding="utf-8") as f:
+    DESIGNS = json.load(f)["designs"]
+
+llm_client = LLMClient()
+
+class TryOnResponse(BaseModel):
+    success: bool
+    message: str
+    image_base64: Optional[str] = None
+    landmarks: Optional[List[Dict]] = None
+    design: Optional[Dict] = None
+    analysis: Optional[Dict] = None
+
+class HandAnalysisResponse(BaseModel):
+    success: bool
+    message: str
+    skin_tone: Optional[str] = None
+    undertone: Optional[str] = None
+    hand_shape: Optional[str] = None
+    recommended_colors: Optional[List[str]] = None
+    confidence: Optional[float] = None
+    description: Optional[str] = None
+
+class DesignResponse(BaseModel):
+    designs: List[Dict]
+
+class AnalyticsResponse(BaseModel):
+    total_try_ons: int
+    total_analyzes: int
+    successful_try_ons: int
+    top_designs: List[Dict]
+    skin_tone_distribution: Dict
+    today_try_ons: int
+    updated_at: str
+
+@app.get("/api/designs", response_model=DesignResponse, tags=["设计库"])
+async def get_designs():
+    return {"designs": DESIGNS}
+
+@app.get("/api/designs/{design_id}", tags=["设计库"])
+async def get_design(design_id: str):
+    design = next((d for d in DESIGNS if d["id"] == design_id), None)
+    if not design:
+        raise HTTPException(status_code=404, detail="设计不存在")
+    return design
+
+@app.post("/api/detect-hands", tags=["手部检测"])
+async def detect_hands(image: UploadFile = File(...)):
+    try:
+        contents = await image.read()
+        nparr = np.frombuffer(contents, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        result = detect_hands_from_array(img)
+        
+        return {
+            "success": result["success"],
+            "message": "检测成功" if result["success"] else "未检测到手部",
+            "num_hands": result["num_hands"],
+            "hands": result["hands"]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/analyze-hand", response_model=HandAnalysisResponse, tags=["手部分析"])
+async def analyze_hand(image: UploadFile = File(...)):
+    try:
+        contents = await image.read()
+        
+        result = llm_client.analyze_hand(contents)
+        
+        if result.get("error"):
+            return {
+                "success": False,
+                "message": result["error"],
+                "skin_tone": result.get("skin_tone"),
+                "undertone": result.get("undertone"),
+                "hand_shape": result.get("hand_shape"),
+                "recommended_colors": result.get("recommended_colors"),
+                "confidence": result.get("confidence"),
+                "description": result.get("description")
+            }
+        
+        log_analyze_hand(result["skin_tone"], result["undertone"])
+        
+        return {
+            "success": True,
+            "message": "分析成功",
+            "skin_tone": result.get("skin_tone"),
+            "undertone": result.get("undertone"),
+            "hand_shape": result.get("hand_shape"),
+            "recommended_colors": result.get("recommended_colors"),
+            "confidence": result.get("confidence"),
+            "description": result.get("description")
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/try-on", response_model=TryOnResponse, tags=["AI试戴"])
+async def try_on(
+    image: UploadFile = File(...),
+    design_id: Optional[str] = None,
+    design_image: Optional[str] = None,
+):
+    try:
+        # Look up by id first, then by image path. Either works.
+        design = None
+        if design_id:
+            design = next((d for d in DESIGNS if d["id"] == design_id), None)
+            if not design:
+                raise HTTPException(status_code=404, detail=f"design_id 不存在: {design_id}")
+        elif design_image:
+            design = next((d for d in DESIGNS if d["image"] == design_image), None)
+            if not design:
+                raise HTTPException(status_code=404, detail=f"design_image 不匹配任何款式: {design_image}")
+        else:
+            # Neither specified -> only then fall back to first design
+            design = DESIGNS[0] if DESIGNS else None
+        if not design:
+            raise HTTPException(status_code=404, detail="设计库为空")
+        design_id = design["id"]
+        
+        contents = await image.read()
+        nparr = np.frombuffer(contents, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        hand_result = get_detector().detect(img)
+        
+        if not hand_result["success"]:
+            return {
+                "success": False,
+                "message": "未检测到手部，请重新上传照片",
+                "design": design
+            }
+        
+        landmarks = hand_result["hands"][0]["landmarks"]
+        
+        overlay_result = apply_nail_overlay_from_array(img, landmarks, design)
+        
+        if not overlay_result["success"]:
+            return {
+                "success": False,
+                "message": overlay_result["error"],
+                "design": design,
+                "landmarks": landmarks
+            }
+        
+        # 注意：肤色分析（LLM）已移出试戴主流程，避免几十秒阻塞。
+        # 试戴图立即返回；前端如需肤色推荐，单独异步调 /api/analyze-hand。
+        log_try_on(design_id, design["name"], None, True)
+
+        return {
+            "success": True,
+            "message": "试戴成功",
+            "image_base64": overlay_result["image_base64"],
+            "landmarks": landmarks,
+            "design": design,
+            "analysis": None
+        }
+    except Exception as e:
+        if design:
+            log_try_on(design_id, design["name"], success=False)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/analytics", response_model=AnalyticsResponse, tags=["数据分析"])
+async def get_analytics_endpoint():
+    return get_analytics()
+
+@app.get("/api/analytics/design/{design_id}", tags=["数据分析"])
+async def get_design_analytics_endpoint(design_id: str):
+    return get_design_analytics(design_id)
+
+@app.get("/", tags=["健康检查"])
+async def health_check():
+    return {"status": "ok", "service": "美甲AI试戴后端服务", "version": "1.0.0"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

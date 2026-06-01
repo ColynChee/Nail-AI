@@ -1,0 +1,31 @@
+﻿/* ═══════════════════════════════════════
+   PHONE SHELL
+═══════════════════════════════════════ */
+.phone{
+  width:375px;
+  height:812px;
+  background:var(--warm-gray);
+  border-radius:46px;
+  border:2.5px solid #D8CFC9;
+  overflow:hidden;
+  position:relative;
+  box-shadow:
+    0 0 0 6px #C8BFB9,
+    0 28px 90px rgba(44,24,16,0.18),
+    0 4px 20px rgba(44,24,16,0.1);
+}
+
+/* ═══════════════════════════════════════
+   SCREENS
+═══════════════════════════════════════ */
+.screen{display:none;flex-direction:column;height:812px;overflow:hidden;position:absolute;inset:0}
+.screen.active{display:flex}
+.scroll-body{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.scroll-body::-webkit-scrollbar{display:none}
+
+/* slide animation */
+@keyframes slideIn{from{transform:translateX(32px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes slideBack{from{transform:translateX(-32px);opacity:0}to{transform:translateX(0);opacity:1}}
+.screen.active{animation:slideIn .22s ease both}
+.screen.back.active{animation:slideBack .22s ease both}
+

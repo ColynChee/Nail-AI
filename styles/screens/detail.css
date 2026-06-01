@@ -1,0 +1,60 @@
+﻿/* ═══════════════════════════════════════
+   ④ DETAIL
+═══════════════════════════════════════ */
+.detail-hero{
+  height:220px;display:flex;align-items:center;justify-content:center;
+  font-size:82px;background:var(--cream);position:relative;flex-shrink:0;
+  overflow:hidden;
+}
+.detail-hero-img{width:100%;height:100%;display:none;object-fit:cover}
+.detail-hero-img.show{display:block}
+.detail-hero-img.show + #d-emoji{display:none}
+.detail-badges{position:absolute;top:14px;left:14px;display:flex;gap:6px}
+.detail-badge{border-radius:var(--rPill);padding:4px 10px;font-size:10px;font-weight:700}
+.db-hot{background:#FF3B6B;color:#fff}
+.db-new{background:var(--orange);color:#fff}
+.detail-fav{
+  position:absolute;top:14px;right:14px;
+  width:38px;height:38px;border-radius:50%;background:#fff;border:none;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+.detail-fav svg{width:18px;height:18px;fill:none;stroke:var(--pink-deep);stroke-width:2;stroke-linejoin:round;transition:fill .15s}
+.detail-fav.liked svg{fill:var(--pink-deep)}
+
+.detail-body{padding:16px}
+.detail-title-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.detail-name{font-size:21px;font-weight:900;color:var(--text-dark);font-family:'Nunito',sans-serif}
+.detail-price-box{text-align:right}
+.detail-price{font-size:23px;font-weight:900;color:var(--orange);font-family:'Nunito',sans-serif}
+.detail-price-sub{font-size:11px;color:var(--text-soft)}
+.detail-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+
+.stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.stat-box{background:var(--warm-gray);border-radius:var(--rMd);padding:10px;text-align:center}
+.stat-num{font-size:17px;font-weight:800;color:var(--text-dark);font-family:'Nunito',sans-serif}
+.stat-lbl{font-size:10px;color:var(--text-soft);margin-top:2px}
+
+.color-row{display:flex;gap:8px;margin-bottom:14px;align-items:center}
+.c-dot{width:30px;height:30px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;transition:transform .15s}
+.c-dot.on{border-color:var(--orange);transform:scale(1.18)}
+
+.salon-card{
+  background:var(--warm-gray);border-radius:var(--rMd);
+  padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:14px;
+}
+.salon-icon{width:36px;height:36px;border-radius:10px;background:var(--orange-light);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.salon-icon svg{width:18px;height:18px;fill:none;stroke:var(--orange);stroke-width:1.8;stroke-linecap:round}
+.salon-name{font-size:13px;font-weight:700;color:var(--text-dark)}
+.salon-dist{font-size:11px;color:var(--text-soft);margin-top:2px}
+.salon-rating{margin-left:auto;text-align:right}
+.salon-rating .rating-num{font-size:14px;font-weight:800;color:var(--orange);font-family:'Nunito',sans-serif}
+.salon-rating .rating-lbl{font-size:10px;color:var(--text-soft)}
+
+.detail-desc{font-size:13px;color:var(--text-mid);line-height:1.75;margin-bottom:90px}
+
+.detail-cta{
+  display:flex;gap:10px;padding:12px 16px;
+  background:var(--white);border-top:.5px solid var(--border);flex-shrink:0;
+}
+

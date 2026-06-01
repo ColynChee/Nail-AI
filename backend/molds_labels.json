@@ -1,0 +1,222 @@
+{
+  "design_001": {
+    "_name": "裸色奶油",
+    "0": "pinky",
+    "1": "index",
+    "2": "middle",
+    "3": "ring",
+    "4": "ring",
+    "5": "middle",
+    "6": "index",
+    "7": "pinky"
+  },
+  "design_002": {
+    "_name": "雾感橄榄",
+    "0": "pinky",
+    "1": "ring",
+    "2": "middle",
+    "3": "thumb",
+    "4": "index"
+  },
+  "design_003": {
+    "_name": "白底波点",
+    "0": "thumb",
+    "1": "index",
+    "2": "middle",
+    "3": "ring",
+    "4": "pinky"
+  },
+  "design_004": {
+    "_name": "暖棕琥珀",
+    "0": "pinky",
+    "1": "ring",
+    "2": "thumb",
+    "3": "middle",
+    "4": "index"
+  },
+  "design_005": {
+    "_name": "莓果红",
+    "0": "pinky",
+    "1": "ring",
+    "2": "middle",
+    "3": "index",
+    "4": "thumb"
+  },
+  "design_006": {
+    "_name": "蜜桃珊瑚",
+    "0": "pinky",
+    "1": "ring",
+    "2": "middle",
+    "3": "index",
+    "4": "thumb"
+  },
+  "design_007": {
+    "_name": "薄荷青",
+    "0": "pinky",
+    "1": "ring",
+    "2": "middle",
+    "3": "skip",
+    "4": "index",
+    "5": "thumb"
+  },
+  "design_008": {
+    "_name": "玫瑰渐变",
+    "0": "skip",
+    "1": "index",
+    "2": "middle",
+    "3": "thumb",
+    "4": "skip",
+    "5": "ring",
+    "6": "pinky"
+  },
+  "design_009": {
+    "_name": "雾紫晚霞",
+    "0": "skip",
+    "1": "thumb",
+    "2": "index",
+    "3": "middle",
+    "4": "ring",
+    "5": "pinky"
+  },
+  "design_010": {
+    "_name": "象牙白",
+    "0": "pinky",
+    "1": "ring",
+    "2": "middle",
+    "3": "index",
+    "4": "skip",
+    "5": "thumb"
+  },
+  "design_011": {
+    "_name": "深邃黑金",
+    "0": "skip",
+    "1": "skip",
+    "2": "ring",
+    "3": "pinky",
+    "4": "middle",
+    "5": "thumb",
+    "6": "skip",
+    "7": "index"
+  },
+  "design_012": {
+    "_name": "焦糖咖啡",
+    "0": "skip",
+    "1": "index",
+    "2": "skip",
+    "3": "middle",
+    "4": "ring",
+    "5": "pinky"
+  },
+  "design_013": {
+    "_name": "粉雾少女",
+    "0": "thumb",
+    "1": "middle",
+    "2": "ring",
+    "3": "index",
+    "4": "pinky"
+  },
+  "design_014": {
+    "_name": "镜面银",
+    "0": "pinky",
+    "1": "ring",
+    "2": "middle",
+    "3": "index",
+    "4": "thumb"
+  },
+  "design_015": {
+    "_name": "墨绿丝绒",
+    "0": "pinky",
+    "1": "ring",
+    "2": "middle",
+    "3": "thumb",
+    "4": "index"
+  },
+  "design_016": {
+    "_name": "晨曦杏",
+    "0": "pinky",
+    "1": "ring",
+    "2": "index",
+    "3": "middle",
+    "4": "thumb"
+  },
+  "design_017": {
+    "_name": "海岛蓝",
+    "0": "pinky",
+    "1": "pinky",
+    "2": "ring",
+    "3": "middle",
+    "4": "thumb"
+  },
+  "design_018": {
+    "_name": "黄昏橘",
+    "0": "pinky",
+    "1": "ring",
+    "2": "middle",
+    "3": "index",
+    "4": "skip",
+    "5": "skip",
+    "6": "skip",
+    "7": "skip",
+    "8": "thumb"
+  },
+  "design_019": {
+    "_name": "巧克力棕",
+    "0": "pinky",
+    "1": "ring",
+    "2": "skip",
+    "3": "skip",
+    "4": "middle",
+    "5": "index",
+    "6": "thumb"
+  },
+  "design_020": {
+    "_name": "葡萄紫",
+    "0": "thumb",
+    "1": "index",
+    "2": "middle"
+  },
+  "design_021": {
+    "_name": "樱花粉",
+    "0": "pinky",
+    "1": "ring",
+    "2": "middle",
+    "3": "thumb",
+    "4": "index"
+  },
+  "design_022": {
+    "_name": "燕麦奶咖",
+    "0": "ring",
+    "1": "pinky",
+    "2": "index",
+    "3": "middle",
+    "4": "thumb"
+  },
+  "design_023": {
+    "_name": "墨黑漆",
+    "0": "thumb",
+    "1": "index",
+    "2": "middle",
+    "3": "ring",
+    "4": "pinky"
+  },
+  "design_024": {
+    "_name": "极光闪片",
+    "0": "skip",
+    "1": "skip",
+    "2": "pinky",
+    "3": "ring",
+    "4": "middle",
+    "5": "index",
+    "6": "skip",
+    "7": "thumb",
+    "8": "skip"
+  },
+  "design_025": {
+    "_name": "正红丝绒",
+    "0": "index",
+    "1": "thumb",
+    "2": "middle",
+    "3": "ring",
+    "4": "pinky"
+  }
+}

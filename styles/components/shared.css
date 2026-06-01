@@ -1,0 +1,103 @@
+﻿/* ═══════════════════════════════════════
+   SHARED COMPONENTS
+═══════════════════════════════════════ */
+/* Cards */
+.card{background:var(--white);border-radius:var(--rMd);border:.5px solid var(--border);box-shadow:var(--shadow-card)}
+.card-press{transition:transform .13s}
+.card-press:active{transform:scale(.97)}
+
+/* Tags */
+.tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:var(--rPill);font-weight:600}
+.tag-pink{background:var(--pink-light);color:var(--pink-deep)}
+.tag-orange{background:var(--orange-light);color:var(--orange-deep)}
+.tag-purple{background:var(--purple-light);color:#7C3AED}
+.tag-teal{background:var(--teal-light);color:#0F766E}
+
+/* Section header */
+.sec-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.sec-hd h3{font-size:14px;font-weight:700;color:var(--text-dark)}
+.sec-hd a{font-size:12px;color:var(--orange);cursor:pointer}
+
+/* Divider */
+.div{height:.5px;background:var(--border);margin:14px 0}
+
+/* Pill badge */
+.rank-badge{position:absolute;top:7px;left:7px;background:var(--orange);border-radius:var(--rPill);padding:2px 7px;font-size:10px;font-weight:700;color:#fff}
+.hot-badge{position:absolute;top:7px;right:7px;background:#FF3B6B;border-radius:var(--rPill);padding:2px 7px;font-size:10px;font-weight:700;color:#fff}
+
+/* Heart btn */
+.heart-btn{
+  width:30px;height:30px;border-radius:50%;background:var(--pink-light);
+  border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:transform .15s;
+}
+.heart-btn:active{transform:scale(.82)}
+.heart-btn svg{width:14px;height:14px;fill:none;stroke:var(--pink-deep);stroke-width:2;stroke-linejoin:round;transition:fill .15s}
+.heart-btn.liked svg{fill:var(--pink-deep)}
+
+/* CTA buttons */
+.btn-primary{
+  border:none;background:var(--orange);color:#fff;
+  border-radius:var(--rMd);padding:14px;
+  font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;
+  transition:opacity .15s;
+}
+.btn-primary:active{opacity:.85}
+.btn-outline{
+  border:1.5px solid var(--orange);background:var(--white);color:var(--orange);
+  border-radius:var(--rMd);padding:14px;
+  font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;
+  transition:opacity .15s;
+}
+.btn-outline:active{opacity:.8}
+.btn-pill{
+  border:none;border-radius:var(--rPill);padding:9px 20px;
+  font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;
+}
+
+/* Spinner */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner-ring{
+  width:46px;height:46px;border-radius:50%;
+  border:3px solid var(--orange-mid);border-top-color:var(--orange);
+  animation:spin .75s linear infinite;
+}
+
+/* Toast */
+.toast{
+  position:absolute;bottom:96px;left:50%;
+  transform:translateX(-50%) translateY(10px);
+  background:rgba(44,24,16,.88);color:#fff;
+  font-size:13px;font-weight:500;
+  padding:10px 20px;border-radius:var(--rPill);
+  opacity:0;transition:all .28s;pointer-events:none;
+  white-space:nowrap;z-index:999;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Bottom sheet overlay */
+.overlay{
+  position:absolute;inset:0;background:rgba(44,24,16,.4);
+  z-index:200;display:none;align-items:flex-end;
+}
+.overlay.show{display:flex}
+.sheet{
+  width:100%;background:var(--white);border-radius:24px 24px 0 0;
+  padding:16px 16px 36px;animation:sheetUp .25s ease both;
+}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+
+/* Data states */
+.data-empty{
+  grid-column:1/-1;
+  background:var(--white);
+  border:.5px solid var(--border);
+  border-radius:var(--rMd);
+  padding:18px 16px;
+}
+.data-empty-title{font-size:14px;font-weight:800;color:var(--text-dark)}
+.data-empty-text{font-size:12px;line-height:1.6;color:var(--text-soft);margin-top:6px}
+.trend-empty{min-height:120px;display:flex;flex-direction:column;justify-content:center}
+.gallery-empty{margin:0;min-height:160px;display:flex;flex-direction:column;justify-content:center}
+
