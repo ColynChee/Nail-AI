@@ -70,10 +70,21 @@
           <div class="qi" style="background:#F5F0FF"><svg viewBox="0 0 24 24" stroke="var(--purple)"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L22 22"/><path d="M8 11h6M11 8v6"/></svg></div>
           <span>以图搜款</span>
         </button>
-        <button class="qbtn" onclick="openSkinSheet()">
-          <div class="qi" style="background:#F0FDFB"><svg viewBox="0 0 24 24" stroke="var(--teal)"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 8v4l3 3"/></svg></div>
-          <span>肤色匹配</span>
+        <button class="qbtn" onclick="go('s-ops')">
+          <div class="qi" style="background:#F0FDFB"><svg viewBox="0 0 24 24" stroke="var(--teal)"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="5" rx="1"/><rect x="12" y="7" width="3" height="9" rx="1"/><rect x="17" y="9" width="3" height="7" rx="1"/></svg></div>
+          <span>智能运营</span>
         </button>
+      </div>
+
+      <div class="ops-entry" onclick="go('s-ops')">
+        <div class="ops-entry-icon">
+          <svg viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l3-3 3 2 5-7"/><path d="M17 7h3v3"/></svg>
+        </div>
+        <div class="ops-entry-main">
+          <div class="ops-entry-title">智能运营工作台</div>
+          <div class="ops-entry-sub" id="ops-entry-sub">同步平台热度，生成今日主推与运营动作</div>
+        </div>
+        <div class="ops-entry-arrow">›</div>
       </div>
 
       <!-- trending -->
@@ -147,6 +158,102 @@
     </div>
     <button class="bni" onclick="go('s-design-gen')">
       <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg><span>AI设计</span>
+    </button>
+    <button class="bni" onclick="go('s-profile')">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>我的</span>
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+  ②A OPS DASHBOARD
+════════════════════════════════ -->
+<div class="screen" id="s-ops">
+  <div class="sbar"><span class="sbar-l">9:41</span><div class="sbar-r"><span>●●●</span><span>WiFi</span><span>98%</span></div></div>
+  <div class="topnav">
+    <button class="icon-btn icon-btn-ghost" onclick="go('s-home')">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="nav-title">智能运营</span>
+    <button class="icon-btn icon-btn-ghost" onclick="refreshOpsDashboard(true)">
+      <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+    </button>
+  </div>
+  <div class="scroll-body">
+    <div class="ops-body">
+      <section class="ops-hero">
+        <div>
+          <div class="ops-kicker">B站公开视频 · 实时热度</div>
+          <h2>今日运营驾驶舱</h2>
+          <p id="ops-hero-copy">根据平台热度、试戴行为和款式库存，生成可执行的推荐策略。</p>
+        </div>
+        <div class="ops-score">
+          <span id="ops-score-num">--</span>
+          <small>运营指数</small>
+        </div>
+      </section>
+
+      <div class="ops-updated" id="ops-updated">正在同步平台数据...</div>
+
+      <section class="ops-kpis" id="ops-kpis"></section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <h3>今日主推策略</h3>
+            <p>把热门款、试戴入口和内容投放连成一条转化链路。</p>
+          </div>
+          <button class="ops-mini-btn" onclick="refreshOpsDashboard(true)">刷新</button>
+        </div>
+        <div class="ops-strategy" id="ops-strategy"></div>
+      </section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <h3>款式机会矩阵</h3>
+            <p>按实时热度、互动意愿和上新潜力给出运营动作。</p>
+          </div>
+        </div>
+        <div class="ops-list" id="ops-priority-list"></div>
+      </section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <h3>风险与迭代</h3>
+            <p>识别热度偏低或内容表达不足的款式，安排补图和话术优化。</p>
+          </div>
+        </div>
+        <div class="ops-list compact" id="ops-risk-list"></div>
+      </section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <h3>AI 运营方案</h3>
+            <p>给店长和运营同学看的今日执行清单。</p>
+          </div>
+        </div>
+        <div class="ops-plan" id="ops-plan"></div>
+      </section>
+    </div>
+  </div>
+  <div class="bnav">
+    <button class="bni" onclick="go('s-home')">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>首页</span>
+    </button>
+    <button class="bni" onclick="go('s-gallery')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg><span>款式库</span>
+    </button>
+    <div class="bni-cam">
+      <div class="fab" onclick="go('s-tryon')">
+        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </div>
+      <span>试戴</span>
+    </div>
+    <button class="bni on" onclick="go('s-ops')">
+      <svg viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="5" rx="1"/><rect x="12" y="7" width="3" height="9" rx="1"/><rect x="17" y="9" width="3" height="7" rx="1"/></svg><span>运营</span>
     </button>
     <button class="bni" onclick="go('s-profile')">
       <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>我的</span>
@@ -389,33 +496,17 @@
       </div>
       <div class="div"></div>
       <div class="detail-section-title" style="font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:10px">数据表现</div>
-      <div class="stats-row">
-        <div class="stat-box"><div class="stat-num">8.2k</div><div class="stat-lbl">试戴次数</div></div>
-        <div class="stat-box"><div class="stat-num">96%</div><div class="stat-lbl">好评率</div></div>
-        <div class="stat-box"><div class="stat-num">#1</div><div class="stat-lbl">本周排名</div></div>
+      <div class="stats-row" id="d-stats-row">
+        <div class="stat-box"><div class="stat-num" id="d-stat-tryons">8.2k</div><div class="stat-lbl" id="d-stat-tryons-lbl">试戴次数</div></div>
+        <div class="stat-box"><div class="stat-num" id="d-stat-rate">96%</div><div class="stat-lbl" id="d-stat-rate-lbl">好评率</div></div>
+        <div class="stat-box"><div class="stat-num" id="d-stat-rank">#1</div><div class="stat-lbl" id="d-stat-rank-lbl">本周排名</div></div>
       </div>
       <div class="div"></div>
       <div class="detail-section-title" style="font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:10px">选择颜色</div>
-      <div class="color-row">
-        <div class="c-dot on" style="background:#FFB3C6" onclick="pickColor(this)"></div>
-        <div class="c-dot" style="background:#FFCBA4" onclick="pickColor(this)"></div>
-        <div class="c-dot" style="background:#C9B8E8" onclick="pickColor(this)"></div>
-        <div class="c-dot" style="background:#FFEAA7" onclick="pickColor(this)"></div>
-        <div class="c-dot" style="background:#B2F0E8" onclick="pickColor(this)"></div>
-      </div>
+      <div class="color-row" id="d-color-row"></div>
       <div class="div"></div>
-      <div class="detail-section-title" style="font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:10px">附近门店</div>
-      <div class="salon-card">
-        <div class="salon-icon"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
-        <div>
-          <div class="salon-name">甲美旗舰店 · 朝阳店</div>
-          <div class="salon-dist">距离 0.8km · 营业中</div>
-        </div>
-        <div class="salon-rating">
-          <div class="rating-num">4.9</div>
-          <div class="rating-lbl">⭐ 好评</div>
-        </div>
-      </div>
+      <div class="detail-section-title" style="font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:10px">平台相关视频</div>
+      <div class="related-posts" id="d-related-posts"></div>
       <div class="div"></div>
       <!-- 详细设计图 -->
       <div id="d-detailed-img-box" style="display:none;padding:12px 16px;background:var(--bg-light)">
@@ -424,7 +515,7 @@
       </div>
       <div class="div"></div>
       <div class="detail-section-title" style="font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:8px">款式介绍</div>
-      <p class="detail-desc">以温柔奶油质感为底，叠加细腻樱花元素，春日感十足。适合搭配浅色或碎花系穿搭，自然光下效果尤为出众。<br><br>适合肤色：暖白、自然色、小麦色。<br>适合手型：偏修长或普通均可。<br><br>工期约 90 分钟，建议提前预约。</p>
+      <p class="detail-desc" id="d-desc">以温柔奶油质感为底，叠加细腻樱花元素，春日感十足。适合搭配浅色或碎花系穿搭，自然光下效果尤为出众。<br><br>适合肤色：暖白、自然色、小麦色。<br>适合手型：偏修长或普通均可。<br><br>工期约 90 分钟，建议提前预约。</p>
     </div>
   </div>
   <div class="detail-cta">
@@ -802,6 +893,7 @@
 <script src="scripts/xhs-config.js"></script>
 <script src="scripts/xhs-keyword-heat.js"></script>
 <script src="scripts/trending.js"></script>
+<script src="scripts/ops.js"></script>
 <script src="scripts/gallery.js"></script>
 <script src="scripts/detail.js"></script>
 <script src="scripts/try-on.js"></script>

@@ -16,7 +16,7 @@ function go(id, isBack) {
   if (id === 's-wishlist') renderWishlist();
   if (id === 's-profile') applyProfile();
   if (id === 's-gallery') renderGallery(currentFilter);
+  if (id === 's-ops' && typeof renderOpsDashboard === 'function') renderOpsDashboard();
 }
 
 function goBack() { go(prevScreen, true); }
-

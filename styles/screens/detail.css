@@ -39,17 +39,25 @@
 .c-dot{width:30px;height:30px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;transition:transform .15s}
 .c-dot.on{border-color:var(--orange);transform:scale(1.18)}
 
-.salon-card{
+.related-posts{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.related-post-card{
+  display:flex;align-items:center;gap:10px;
   background:var(--warm-gray);border-radius:var(--rMd);
-  padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:14px;
+  padding:10px 12px;text-decoration:none;color:inherit;
 }
-.salon-icon{width:36px;height:36px;border-radius:10px;background:var(--orange-light);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.salon-icon svg{width:18px;height:18px;fill:none;stroke:var(--orange);stroke-width:1.8;stroke-linecap:round}
-.salon-name{font-size:13px;font-weight:700;color:var(--text-dark)}
-.salon-dist{font-size:11px;color:var(--text-soft);margin-top:2px}
-.salon-rating{margin-left:auto;text-align:right}
-.salon-rating .rating-num{font-size:14px;font-weight:800;color:var(--orange);font-family:'Nunito',sans-serif}
-.salon-rating .rating-lbl{font-size:10px;color:var(--text-soft)}
+.related-post-mark{
+  width:34px;height:34px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  background:#FFF0F5;color:#C2185B;font-size:15px;font-weight:800;flex-shrink:0;
+}
+.related-post-main{flex:1;min-width:0}
+.related-post-title{font-size:12px;font-weight:800;color:var(--text-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.related-post-meta{font-size:10px;color:var(--text-soft);margin-top:2px;line-height:1.4}
+.related-post-score{font-size:11px;font-weight:800;color:var(--orange);font-family:'Nunito',sans-serif;white-space:nowrap}
+.related-empty{
+  padding:10px 12px;border-radius:var(--rMd);
+  background:var(--warm-gray);font-size:11px;color:var(--text-soft);line-height:1.6;
+}
 
 .detail-desc{font-size:13px;color:var(--text-mid);line-height:1.75;margin-bottom:90px}
 
@@ -57,4 +65,3 @@
   display:flex;gap:10px;padding:12px 16px;
   background:var(--white);border-top:.5px solid var(--border);flex-shrink:0;
 }
-

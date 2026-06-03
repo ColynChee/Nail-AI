@@ -18,6 +18,9 @@ from hand_detector import get_detector
 from analytics import log_try_on, log_analyze_hand, get_analytics, get_design_analytics
 import nail_tryon_v2
 from design_generator import generate_design_preview, confirm_design
+from bilibili_stats import BilibiliStatsError, get_bilibili_trending
+from douyin_stats import DouyinStatsError, get_douyin_trending, inspect_public_douyin_url
+from rednote_stats import RedNoteStatsError, get_rednote_trending, inspect_public_rednote_url
 
 app = FastAPI(title="美甲AI试戴后端服务", version="2.0.0")
 
@@ -903,6 +906,51 @@ async def get_analytics_endpoint():
 @app.get("/api/analytics/design/{design_id}", tags=["数据分析"])
 async def get_design_analytics_endpoint(design_id: str):
     return get_design_analytics(design_id)
+
+
+@app.get("/api/douyin/trending-nails", tags=["Douyin"])
+def get_douyin_trending_endpoint():
+    try:
+        return get_douyin_trending(DESIGNS)
+    except DouyinStatsError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+
+@app.get("/api/bilibili/trending-nails", tags=["Bilibili"])
+def get_bilibili_trending_endpoint():
+    try:
+        return get_bilibili_trending(DESIGNS)
+    except BilibiliStatsError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+
+@app.get("/api/douyin/test-url", tags=["Douyin"])
+def test_douyin_public_url(url: str):
+    try:
+        return inspect_public_douyin_url(url)
+    except DouyinStatsError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+
+@app.get("/api/rednote/trending-nails", tags=["RedNote"])
+def get_rednote_trending_endpoint():
+    try:
+        return get_rednote_trending(DESIGNS)
+    except RedNoteStatsError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+
+@app.get("/api/xhs/trending-nails", tags=["RedNote"])
+async def get_xhs_trending_endpoint():
+    return get_rednote_trending_endpoint()
+
+
+@app.get("/api/rednote/test-url", tags=["RedNote"])
+def test_rednote_public_url(url: str):
+    try:
+        return inspect_public_rednote_url(url)
+    except RedNoteStatsError as e:
+        raise HTTPException(status_code=503, detail=str(e))
 
 
 if __name__ == "__main__":

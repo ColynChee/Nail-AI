@@ -1,27 +1,32 @@
 ﻿/* ══════════════════════════════════
-   今日热门 - 小红书实时数据
+   今日热门 - 平台实时数据
 ══════════════════════════════════ */
 let liveTrendingItems = [];
 let xhsTrendingState = {
   status: 'idle',
-  message: '正在获取小红书实时热度...',
+  message: '正在获取平台实时热度...',
   updatedAt: ''
 };
 let xhsTrendingTimer;
 
+function getDouyinTrendingConfig() {
+  if (typeof DOUYIN_TRENDING_CONFIG !== 'undefined') return DOUYIN_TRENDING_CONFIG;
+  if (typeof XHS_TRENDING_CONFIG !== 'undefined') return XHS_TRENDING_CONFIG;
+  return {};
+}
+
 function getXhsTrendingEndpoint() {
-  return (typeof XHS_TRENDING_CONFIG !== 'undefined' && XHS_TRENDING_CONFIG.endpoint || '').trim();
+  return (getDouyinTrendingConfig().endpoint || '').trim();
 }
 
 function getXhsRefreshMs() {
-  const ms = typeof XHS_TRENDING_CONFIG !== 'undefined' ? XHS_TRENDING_CONFIG.refreshMs : 0;
+  const ms = getDouyinTrendingConfig().refreshMs || 0;
   return Number.isFinite(ms) && ms > 0 ? ms : 5 * 60 * 1000;
 }
 
 function shouldUseKeywordFallback() {
   return (
-    typeof XHS_TRENDING_CONFIG !== 'undefined' &&
-    XHS_TRENDING_CONFIG.keywordFallback !== false &&
+    getDouyinTrendingConfig().keywordFallback !== false &&
     typeof XHS_KEYWORD_HEAT !== 'undefined' &&
     Array.isArray(XHS_KEYWORD_HEAT)
   );
@@ -57,7 +62,8 @@ function buildKeywordHeatTrendingItems() {
       image: style.image,
       detailed_image: style.detailed_image,
       id: style.id,
-      xhs: topEntry ? topEntry.xhs : 'https://www.xiaohongshu.com/search_result?keyword=%E7%BE%8E%E7%94%B2'
+      douyin: topEntry ? (topEntry.douyin || topEntry.xhs) : 'https://www.douyin.com/search/%E7%BE%8E%E7%94%B2',
+      xhs: topEntry ? (topEntry.douyin || topEntry.xhs) : 'https://www.douyin.com/search/%E7%BE%8E%E7%94%B2'
     };
   })
     .filter(item => item.heatScore > 0)
@@ -81,7 +87,8 @@ function buildKeywordHeatGalleryItems(filter) {
       sub: topKeywords || `${style.tags[0]} · 关键词热度`,
       heat: score ? `${formatXhsHeat(score)}参考` : `${style.heat} 热度`,
       heatScore: score || toTrafficNumber(style.heat),
-      xhs: topEntry ? topEntry.xhs : 'https://www.xiaohongshu.com/search_result?keyword=%E7%BE%8E%E7%94%B2'
+      douyin: topEntry ? (topEntry.douyin || topEntry.xhs) : 'https://www.douyin.com/search/%E7%BE%8E%E7%94%B2',
+      xhs: topEntry ? (topEntry.douyin || topEntry.xhs) : 'https://www.douyin.com/search/%E7%BE%8E%E7%94%B2'
     };
   })
     .sort((a, b) => b.heatScore - a.heatScore)
@@ -110,12 +117,13 @@ function toTrafficNumber(value) {
 
 function calcXhsHeatScore(item) {
   if (item.heatScore !== undefined) return toTrafficNumber(item.heatScore);
-  const views = toTrafficNumber(item.viewCount || item.views || item.readCount);
-  const likes = toTrafficNumber(item.likeCount || item.likes);
-  const collects = toTrafficNumber(item.collectCount || item.collects || item.favorites);
+  const views = toTrafficNumber(item.viewCount || item.views || item.readCount || item.playCount || item.play_count);
+  const likes = toTrafficNumber(item.likeCount || item.likes || item.diggCount || item.digg_count);
+  const collects = toTrafficNumber(item.collectCount || item.collects || item.favorites || item.favoriteCount);
   const comments = toTrafficNumber(item.commentCount || item.comments);
+  const shares = toTrafficNumber(item.shareCount || item.shares);
   const notes = toTrafficNumber(item.noteCount || item.notes);
-  return views + likes * 6 + collects * 8 + comments * 10 + notes * 12;
+  return views + likes * 6 + collects * 8 + comments * 10 + shares * 12 + notes * 12;
 }
 
 function formatXhsHeat(score) {
@@ -125,20 +133,86 @@ function formatXhsHeat(score) {
   return `${Math.round(score)} 热度`;
 }
 
+function formatXhsMetric(value) {
+  const num = toTrafficNumber(value);
+  if (!num) return '0';
+  if (num >= 10000) return `${(num / 10000).toFixed(1)}w`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
+  return `${Math.round(num)}`;
+}
+
+function renderDouyinStats(item) {
+  const stats = item.rawStats || {};
+  const total = toTrafficNumber(stats.viewCount) + toTrafficNumber(stats.likeCount) +
+    toTrafficNumber(stats.collectCount) + toTrafficNumber(stats.commentCount) +
+    toTrafficNumber(stats.shareCount) + toTrafficNumber(stats.noteCount);
+  if (!total && item.trendSource === 'local-fallback') {
+    if (item.crawlerStatus === 'login_required') {
+      return '<div class="trend-stats"><span>视频需登录 · 使用本地热度参考</span></div>';
+    }
+    if (item.crawlerStatus === 'video_not_public') {
+      return '<div class="trend-stats"><span>视频不公开 · 使用本地热度参考</span></div>';
+    }
+    if (item.crawlerStatus === 'unconfigured') {
+      return '<div class="trend-stats"><span>未接入公开视频 · 使用本地热度参考</span></div>';
+    }
+    if (item.crawlerStatus === 'not_discovered') {
+      return '<div class="trend-stats"><span>未自动发现视频 · 使用本地热度参考</span></div>';
+    }
+    return '<div class="trend-stats"><span>公开统计隐藏 · 使用本地热度参考</span></div>';
+  }
+  if (!total && item.crawlerStatus === 'login_required') {
+    return '<div class="trend-stats"><span>视频需登录，无法读取实时统计</span></div>';
+  }
+  if (!total && item.crawlerStatus === 'video_not_public') {
+    return '<div class="trend-stats"><span>视频不公开，无法读取实时统计</span></div>';
+  }
+  if (!total && item.crawlerStatus === 'no_public_stats_found') {
+    return '<div class="trend-stats"><span>公开视频未暴露统计</span></div>';
+  }
+  if (!total && item.crawlerStatus === 'error') {
+    return '<div class="trend-stats"><span>公开页面暂不可读</span></div>';
+  }
+  if (!total) return '';
+  const collectText = toTrafficNumber(stats.collectCount) ? `<span>藏 ${formatXhsMetric(stats.collectCount)}</span>` : '';
+  const danmakuText = toTrafficNumber(stats.danmakuCount) ? `<span>弹 ${formatXhsMetric(stats.danmakuCount)}</span>` : '';
+  const shareText = toTrafficNumber(stats.shareCount) ? `<span>转 ${formatXhsMetric(stats.shareCount)}</span>` : '';
+  return `
+    <div class="trend-stats">
+      <span>播放 ${formatXhsMetric(stats.viewCount)}</span>
+      <span>赞 ${formatXhsMetric(stats.likeCount)}</span>
+      <span>评 ${formatXhsMetric(stats.commentCount)}</span>
+      ${collectText}
+      ${danmakuText}
+      ${shareText}
+    </div>`;
+}
+
 function normalizeXhsTrendingItem(item, index) {
   const local = getLocalStyleMatch(item) || {};
   const score = calcXhsHeatScore(item);
   return {
     rank: index + 1,
-    name: item.name || item.title || item.keyword || local.name || '小红书热门款',
-    sub: item.sub || item.category || item.reason || '小红书实时热度',
+    id: item.id || item.design_id || item.designId || local.id || '',
+    name: item.name || item.title || item.keyword || local.name || '平台热门款',
+    sub: item.sub || item.category || item.reason || '平台实时热度',
     price: item.price || local.price || '到店咨询',
     heat: item.heat || formatXhsHeat(score),
     heatScore: score,
     emoji: item.emoji || local.emoji || '💅',
     bg: item.bg || local.bg || '#FFF0F5',
     image: item.image || item.imageUrl || item.cover || local.image || '',
-    xhs: item.xhs || item.xhsUrl || item.url || 'https://www.xiaohongshu.com/search_result?keyword=%E7%BE%8E%E7%94%B2'
+    detailed_image: item.detailed_image || item.detailedImage || local.detailed_image || '',
+    rawStats: item.rawStats || null,
+    crawlerStatus: item.crawlerStatus || '',
+    crawlError: item.crawlError || '',
+    trendSource: item.trendSource || '',
+    sourceKind: item.sourceKind || '',
+    platformName: item.platformName || (item.trendSource === 'bilibili-public' ? 'B站' : '平台'),
+    platformUrl: item.platformUrl || item.bilibili || item.douyin || item.douyinUrl || item.awemeUrl || item.url || '',
+    bilibili: item.bilibili || '',
+    douyin: item.douyin || item.douyinUrl || item.awemeUrl || item.url || '',
+    xhs: item.douyin || item.douyinUrl || item.awemeUrl || item.url || ''
   };
 }
 
@@ -169,11 +243,14 @@ function renderTrendingCards(items, limit) {
       <div class="trend-info">
         <div class="trend-name">${item.name}</div>
         <div class="trend-sub">${item.sub}</div>
+        ${renderDouyinStats(item)}
         <div class="trend-foot">
           <span class="trend-heat">${item.heat}</span>
           <button class="mini-try" onclick="event.stopPropagation();setTryonStyle('${item.emoji}','${item.name}','${item.price}','${item.bg}','${item.image}');go('s-tryon')">试戴</button>
         </div>
-        <a class="xhs-link" href="${item.xhs}" target="_blank" rel="noopener" onclick="event.stopPropagation()">小红书搜词</a>
+        ${item.platformUrl
+          ? `<a class="xhs-link" href="${item.platformUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${item.platformName || '平台'}视频</a>`
+          : `<span class="xhs-link disabled">待接入${item.platformName || '平台'}视频</span>`}
       </div>
     </div>`).join('');
 }
@@ -186,10 +263,35 @@ function updateTrendNote() {
     return;
   }
   if (xhsTrendingState.source === 'keyword') {
-    note.textContent = `小红书关键词热度参考 · 更新于 ${xhsTrendingState.updatedAt} · 可在 scripts/xhs-keyword-heat.js 调整分数`;
+    note.textContent = `平台关键词热度参考 · 更新于 ${xhsTrendingState.updatedAt} · 可在 scripts/xhs-keyword-heat.js 调整分数`;
     return;
   }
-  note.textContent = `小红书授权数据 · 更新于 ${xhsTrendingState.updatedAt || '刚刚'}`;
+  if (xhsTrendingState.source === 'public-crawler') {
+    const fallbackCount = liveTrendingItems.filter(item => item.trendSource === 'local-fallback').length;
+    note.textContent = fallbackCount
+      ? `公开视频未暴露部分统计 · ${fallbackCount} 款使用本地热度参考 · 更新于 ${xhsTrendingState.updatedAt || '刚刚'}`
+      : `公开视频抓取 · 更新于 ${xhsTrendingState.updatedAt || '刚刚'}`;
+    return;
+  }
+  if (xhsTrendingState.source === 'public-discovery') {
+    const realtimeCount = liveTrendingItems.filter(item => item.trendSource === 'douyin-public').length;
+    const fallbackCount = liveTrendingItems.filter(item => item.trendSource === 'local-fallback').length;
+    note.textContent = realtimeCount
+      ? `自动发现公开视频 · ${realtimeCount} 款实时统计 · ${fallbackCount} 款本地参考 · 更新于 ${xhsTrendingState.updatedAt || '刚刚'}`
+      : `已尝试自动搜索视频 · 暂未读取到公开视频统计 · 更新于 ${xhsTrendingState.updatedAt || '刚刚'}`;
+    return;
+  }
+  if (xhsTrendingState.source === 'bilibili-live') {
+    const realtimeCount = liveTrendingItems.filter(item => item.trendSource === 'bilibili-public').length;
+    const fallbackCount = liveTrendingItems.filter(item => item.trendSource === 'local-fallback').length;
+    note.textContent = `B站公开视频实时统计 · ${realtimeCount} 款实时 · ${fallbackCount} 款本地参考 · 更新于 ${xhsTrendingState.updatedAt || '刚刚'}`;
+    return;
+  }
+  if (xhsTrendingState.source === 'local-fallback') {
+    note.textContent = `未接入公开视频 · 使用本地热度参考 · 更新于 ${xhsTrendingState.updatedAt || '刚刚'}`;
+    return;
+  }
+  note.textContent = `平台授权数据 · 更新于 ${xhsTrendingState.updatedAt || '刚刚'}`;
 }
 
 function paintTrendingHome() {
@@ -197,14 +299,20 @@ function paintTrendingHome() {
   if (!grid) return;
   updateTrendNote();
   if (xhsTrendingState.status === 'loading') {
-    grid.innerHTML = renderTrendMessage('正在同步小红书热度', '连接实时数据源后会自动按流量排序。');
+    grid.innerHTML = renderTrendMessage('正在同步平台热度', '连接公开视频或授权数据源后会自动按流量排序。');
+    if (typeof renderOpsEntrySummary === 'function') renderOpsEntrySummary();
+    if (document.getElementById('s-ops')?.classList.contains('active') && typeof renderOpsDashboard === 'function') renderOpsDashboard();
     return;
   }
   if (xhsTrendingState.status !== 'ready') {
-    grid.innerHTML = renderTrendMessage('未接入小红书实时数据源', xhsTrendingState.message);
+    grid.innerHTML = renderTrendMessage('未接入平台实时数据源', xhsTrendingState.message);
+    if (typeof renderOpsEntrySummary === 'function') renderOpsEntrySummary();
+    if (document.getElementById('s-ops')?.classList.contains('active') && typeof renderOpsDashboard === 'function') renderOpsDashboard();
     return;
   }
-  grid.innerHTML = renderTrendingCards(liveTrendingItems, 4);
+  grid.innerHTML = renderTrendingCards(liveTrendingItems, liveTrendingItems.length);
+  if (typeof renderOpsEntrySummary === 'function') renderOpsEntrySummary();
+  if (document.getElementById('s-ops')?.classList.contains('active') && typeof renderOpsDashboard === 'function') renderOpsDashboard();
 }
 
 async function refreshXhsTrending() {
@@ -222,7 +330,7 @@ async function refreshXhsTrending() {
       liveTrendingItems = [];
       xhsTrendingState = {
         status: 'unconfigured',
-        message: '请在 scripts/xhs-config.js 填入你自己的小红书授权数据接口，或开启 keywordFallback。',
+        message: '请在 scripts/xhs-config.js 填入你自己的平台授权数据接口，或在 backend/bilibili_sources.json 添加公开视频链接。',
         updatedAt: ''
       };
     }
@@ -233,27 +341,34 @@ async function refreshXhsTrending() {
 
   xhsTrendingState = {
     status: 'loading',
-    message: '正在获取小红书实时热度...',
+    message: '正在获取平台实时热度...',
     updatedAt: ''
   };
   paintTrendingHome();
 
   try {
     const response = await fetch(endpoint, { cache: 'no-store' });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) {
+      let message = `HTTP ${response.status}`;
+      try {
+        const errorPayload = await response.json();
+        message = errorPayload.detail || errorPayload.message || message;
+      } catch (e) {}
+      throw new Error(message);
+    }
     const payload = await response.json();
     liveTrendingItems = normalizeXhsTrendingPayload(payload);
-    xhsTrendingState = {
-      status: liveTrendingItems.length ? 'ready' : 'empty',
-      message: liveTrendingItems.length ? '' : '实时接口已连接，但暂时没有返回美甲热门数据。',
-      updatedAt: payload.updatedAt || new Date().toISOString(),
-      source: 'official'
-    };
+      xhsTrendingState = {
+        status: liveTrendingItems.length ? 'ready' : 'empty',
+        message: payload.message || (liveTrendingItems.length ? '' : '实时接口已连接，但暂时没有返回美甲热门数据。'),
+        updatedAt: payload.updatedAt || new Date().toISOString(),
+        source: payload.source || 'official'
+      };
   } catch (error) {
     liveTrendingItems = [];
     xhsTrendingState = {
       status: 'error',
-      message: `小红书实时数据获取失败：${error.message}`,
+      message: `平台实时数据获取失败：${error.message}`,
       updatedAt: ''
     };
   }
@@ -288,4 +403,3 @@ function syncGalleryFilterChip(filter) {
     chip.classList.toggle('on', chip.textContent.trim() === filter);
   });
 }
-

@@ -11,7 +11,10 @@ import requests
 import numpy as np
 from pathlib import Path
 from typing import Dict, Optional
-from openai import OpenAI
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
 
 BACKEND = Path(__file__).resolve().parent
 DESIGNS_GEN_DIR = BACKEND.parent / "designs_generated"
@@ -23,13 +26,13 @@ NAIL_TEMPLATE_PATH = BACKEND.parent / "生成指甲模板图片.png"
 # API 配置
 MODELSCOPE_TOKEN = os.getenv("MODELSCOPE_TOKEN", "")
 if not MODELSCOPE_TOKEN:
-    raise ValueError("请设置环境变量 MODELSCOPE_TOKEN")
+    print("[Design] MODELSCOPE_TOKEN is not set; AI design generation is disabled.")
 
 # OpenAI 兼容客户端（调用 DeepSeek）
 deepseek_client = OpenAI(
     base_url='https://api-inference.modelscope.cn/v1',
     api_key=MODELSCOPE_TOKEN,
-)
+) if MODELSCOPE_TOKEN and OpenAI is not None else None
 
 # ModelScope 通用 API
 MODELSCOPE_BASE_URL = "https://api-inference.modelscope.cn/"
@@ -37,6 +40,11 @@ COMMON_HEADERS = {
     "Authorization": MODELSCOPE_TOKEN,
     "Content-Type": "application/json",
 }
+
+
+def _require_modelscope_token() -> None:
+    if not MODELSCOPE_TOKEN:
+        raise RuntimeError("MODELSCOPE_TOKEN is required for AI design generation.")
 
 
 def _fallback_prompt(user_prompt: str) -> str:
@@ -85,6 +93,11 @@ def optimize_prompt(user_prompt: str) -> Dict:
 - 禁止 3D 渲染或阴影投影
 
 直接返回优化后的中文描述（一段话，不需要JSON）"""
+
+    if deepseek_client is None:
+        print("[DeepSeek] Client unavailable; using fallback template")
+        fallback = _fallback_prompt(user_prompt)
+        return {"optimized": fallback, "fallback": True}
 
     try:
         print(f"[DeepSeek] Calling API with model: deepseek-ai/DeepSeek-V4-Pro")
@@ -148,6 +161,8 @@ def generate_image(prompt: str, max_wait: int = 300) -> Optional[np.ndarray]:
     Returns:
         生成的图片 numpy 数组 (BGR)，或 None 如果失败
     """
+    _require_modelscope_token()
+
     # 1) 提交任务
     submit_response = requests.post(
         f"{MODELSCOPE_BASE_URL}v1/images/generations",

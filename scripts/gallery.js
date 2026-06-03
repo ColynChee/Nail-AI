@@ -6,11 +6,12 @@ function updateGalleryHeatNote(filter) {
   if (!note) return;
   const state = typeof getLiveTrendingState === 'function' ? getLiveTrendingState() : {};
   const updatedAt = state.updatedAt || (typeof XHS_KEYWORD_HEAT_UPDATED_AT !== 'undefined' ? XHS_KEYWORD_HEAT_UPDATED_AT : '手动更新');
+  const sourceName = state.source === 'bilibili-live' ? 'B站' : '平台';
   if (filter === '热门') {
-    note.textContent = `热门榜按小红书热度排序 · 更新于 ${updatedAt}`;
+    note.textContent = `热门榜按${sourceName}热度排序 · 更新于 ${updatedAt}`;
     return;
   }
-  note.textContent = `${filter}款式按小红书关键词热度排序 · 更新于 ${updatedAt}`;
+  note.textContent = `${filter}款式按${sourceName}关键词热度排序 · 更新于 ${updatedAt}`;
 }
 
 function renderGallery(filter) {
@@ -22,8 +23,8 @@ function renderGallery(filter) {
       const state = typeof getLiveTrendingState === 'function' ? getLiveTrendingState() : {};
       grid.innerHTML = `
         <div class="data-empty gallery-empty">
-          <div class="data-empty-title">${state.status === 'loading' ? '正在同步小红书热度' : '未接入小红书实时数据源'}</div>
-          <div class="data-empty-text">${state.message || '请先配置授权后的实时数据接口。'}</div>
+          <div class="data-empty-title">${state.status === 'loading' ? '正在同步平台热度' : '未接入平台实时数据源'}</div>
+          <div class="data-empty-text">${state.message || '请先配置授权后的实时数据接口，或添加公开视频链接。'}</div>
         </div>`;
       return;
     }
