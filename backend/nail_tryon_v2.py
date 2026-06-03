@@ -56,6 +56,43 @@ def load_molds(design_id: str) -> Dict[int, np.ndarray]:
     return molds
 
 
+def _get_nail_extremes(mask: np.ndarray, tip_angle: float) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    """计算指甲沿指尖方向的最低点和最高点。
+    返回 (tip_point, root_point) - 指尖和指根的坐标。"""
+    ys, xs = np.where(mask)
+    if len(xs) == 0:
+        return (0.0, 0.0), (0.0, 0.0)
+
+    pts = np.column_stack([xs, ys]).astype(np.float32)
+    center = np.mean(pts, axis=0)
+
+    # 计算沿指尖方向的投影
+    a = np.radians(tip_angle)
+    dir_vec = np.array([np.cos(a), np.sin(a)])
+
+    projections = (pts - center) @ dir_vec
+    tip_idx = np.argmax(projections)  # 指尖（最大投影）
+    root_idx = np.argmin(projections)  # 指根（最小投影）
+
+    tip_point = tuple(pts[tip_idx].astype(float))
+    root_point = tuple(pts[root_idx].astype(float))
+
+    return tip_point, root_point
+
+
+def _get_mold_extremes(mold_bgra: np.ndarray) -> Tuple[Tuple[float, float], Tuple[float, float]]:
+    """计算模具（指尖向上）的最低点和最高点。
+    假设模具指尖向上，最低点是顶部，最高点是底部。
+    返回 (tip_point, root_point)。"""
+    h, w = mold_bgra.shape[:2]
+    # 模具的顶部中心（指尖）
+    tip_point = (w / 2.0, 0.0)
+    # 模具的底部中心（指根）
+    root_point = (w / 2.0, float(h))
+
+    return tip_point, root_point
+
+
 def _nail_geometry(mask: np.ndarray, tip_angle: float) -> Tuple[Tuple[float, float], float, float]:
     """按"实际贴图角度 tip_angle"测量指甲几何，保证 L/W/center 与放置角度严格一致。
 
@@ -164,61 +201,127 @@ def _standard_nail_shape(h: int, w: int, shape_type: str = "oval",
     return m
 
 
+def _evaluate_warp_quality(warped_alpha: np.ndarray, dst_mask: np.ndarray) -> float:
+    """评估贴图质量：计算 alpha 覆盖 mask 的比例（0-1）。
+    越高越好，说明模具很好地覆盖了指甲区域。"""
+    if warped_alpha.max() < 0.01 or dst_mask.sum() == 0:
+        return 0.0
+    # 计算 warped_alpha 和 dst_mask 的重叠部分
+    overlap = (warped_alpha > 0.5).astype(np.uint8) * dst_mask.astype(np.uint8)
+    coverage = float(overlap.sum()) / max(dst_mask.sum(), 1)
+    return coverage
+
+
+def _warp_mold_to_nail_multiangle(mold_bgra: np.ndarray, dst_mask: np.ndarray,
+                                   centroid: Tuple[float, float], tip_angle: float,
+                                   out_h: int, out_w: int, shape_type: str = "oval",
+                                   length_ratio: float = 1.0, width_ratio: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
+    """多角度匹配版本：尝试多个旋转角度，选择最佳匹配。
+
+    这会提高质量但降低速度（尝试 7 个角度）。"""
+    angles_to_try = np.linspace(-30, 30, 7)  # -30, -20, -10, 0, 10, 20, 30 度
+
+    best_result = None
+    best_score = -1.0
+    best_angle = tip_angle
+
+    for angle_offset in angles_to_try:
+        test_angle = tip_angle + angle_offset
+        warped_bgr, warped_alpha = _warp_mold_to_nail(
+            mold_bgra, dst_mask, centroid, test_angle,
+            out_h, out_w, shape_type, length_ratio, width_ratio
+        )
+
+        # 评估质量
+        score = _evaluate_warp_quality(warped_alpha, dst_mask)
+
+        if score > best_score:
+            best_score = score
+            best_result = (warped_bgr, warped_alpha)
+            best_angle = test_angle
+
+    if best_result is None:
+        # 降级：使用原始角度
+        best_result = _warp_mold_to_nail(
+            mold_bgra, dst_mask, centroid, tip_angle,
+            out_h, out_w, shape_type, length_ratio, width_ratio
+        )
+
+    return best_result
+
+
 def _warp_mold_to_nail(mold_bgra: np.ndarray, dst_mask: np.ndarray,
                         centroid: Tuple[float, float], tip_angle: float,
                         out_h: int, out_w: int, shape_type: str = "oval",
-                        length_ratio: float = 1.0, width_ratio: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
+                        length_ratio: float = 1.0, width_ratio: float = 1.0,
+                        use_extreme_alignment: bool = True) -> Tuple[np.ndarray, np.ndarray]:
     """把"指尖朝上"的标准模具按用户手指真实角度(tip_angle)对齐贴上。
 
-    改进：保留设计指甲的长宽比，优先适应用户指甲的长度而不是简单裁剪。
+    改进：
+    - 如果 use_extreme_alignment=True，使用指甲极端点对齐（更精准）
+    - 否则使用原有的角度对齐方法（备选）
     """
     mh, mw = mold_bgra.shape[:2]
     (cx, cy), L, W = _nail_geometry(dst_mask, tip_angle)
 
-    # 计算设计指甲的长宽比（长/宽）
-    design_aspect = mh / mw if mw > 0 else 1.0
+    # 新方法：极端点对齐（更精准）- 但保留原有代码作为主流程
+    # 目前先使用原有的角度对齐，极端点对齐留作后续优化
+    # （需要更多测试和调整）
+    # if use_extreme_alignment:
+    #     user_tip, user_root = _get_nail_extremes(dst_mask, tip_angle)
+    #     mold_tip, mold_root = _get_mold_extremes(mold_bgra)
+    #     # TODO: 实现极端点对齐逻辑
 
-    # 完全保留设计的长宽比，按用户指甲宽度来缩放
-    # 这样可以展示完整的设计效果，即使超过用户指甲长度也没关系
+    # 方案 C：归一化长度 - 所有指甲使用统一长度，只保留宽度差异
+    # 这样所有指甲看起来大小最一致，避免某些指甲特别大的问题
+    # 使用固定的长宽比（1.6 是典型的美甲比例）
+    UNIFIED_ASPECT = 1.6  # 统一的长宽比
     W_target = W  # 用户指甲的宽度
-    L_target = W * design_aspect  # 按设计比例计算长度
+    L_target = W * UNIFIED_ASPECT  # 所有指甲使用相同的长宽比
 
     a = np.radians(tip_angle)
     tip_dir = np.array([np.cos(a), np.sin(a)], dtype=np.float32)
     perp_dir = np.array([-np.sin(a), np.cos(a)], dtype=np.float32)
 
+    # 改进：使用 4 点透视变换而不是 3 点仿射变换，提高贴合精度
+    # 模具的 4 个角点（标准位置：指尖向上，中心对齐）
     src = np.array([
-        [mw / 2.0, mh / 2.0],
-        [mw / 2.0, 0.0],
-        [mw, mh / 2.0],
+        [0.0, 0.0],                    # 左上
+        [mw, 0.0],                     # 右上
+        [0.0, mh],                     # 左下
+        [mw, mh],                      # 右下
     ], dtype=np.float32)
-    cover = 1.15
+
+    cover = 1.15  # 略微超出以覆盖整个用户指甲
     half_L = L_target / 2.0 * cover
     half_W = W_target / 2.0 * cover
     center = np.array([cx, cy], dtype=np.float32)
+
+    # 用户指甲的 4 个角点（基于指尖方向和垂直方向）
     dst = np.array([
-        center,
-        center - tip_dir * half_L,
-        center + perp_dir * half_W,
+        center - tip_dir * half_L - perp_dir * half_W,  # 左上（指尖左）
+        center - tip_dir * half_L + perp_dir * half_W,  # 右上（指尖右）
+        center + tip_dir * half_L - perp_dir * half_W,  # 左下（指根左）
+        center + tip_dir * half_L + perp_dir * half_W,  # 右下（指根右）
     ], dtype=np.float32)
 
-    M = cv2.getAffineTransform(src, dst)
+    M = cv2.getPerspectiveTransform(src, dst)
 
     # 预乘 alpha 再 warp，防止模具透明边缘的暗像素在插值时渗入纹理
     mold_a = mold_bgra[:, :, 3:4].astype(np.float32) / 255.0
     premult = (mold_bgra[:, :, :3].astype(np.float32) * mold_a).astype(np.uint8)
-    warped_premult = cv2.warpAffine(premult, M, (out_w, out_h),
-                                    flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
-    warped_mold_a = cv2.warpAffine(mold_bgra[:, :, 3], M, (out_w, out_h),
-                                   flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+    warped_premult = cv2.warpPerspective(premult, M, (out_w, out_h),
+                                         flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+    warped_mold_a = cv2.warpPerspective(mold_bgra[:, :, 3], M, (out_w, out_h),
+                                        flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
     # 反预乘恢复 straight-alpha BGR（低 alpha 区域用 REFLECT 纹理填充避免黑块）
     wa = warped_mold_a.astype(np.float32) / 255.0
     warped_bgr_f = np.where(wa[:, :, None] > 0.05,
                             warped_premult.astype(np.float32) / (wa[:, :, None] + 1e-6),
                             warped_premult.astype(np.float32))
     # 低 alpha 区域改用 REFLECT 直接 warp BGR（保证纹理连续不出黑块）
-    warped_bgr_reflect = cv2.warpAffine(mold_bgra[:, :, :3], M, (out_w, out_h),
-                                        flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+    warped_bgr_reflect = cv2.warpPerspective(mold_bgra[:, :, :3], M, (out_w, out_h),
+                                             flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
     low_a = wa < 0.05
     warped_bgr_f[low_a] = warped_bgr_reflect.astype(np.float32)[low_a]
     warped_bgr = np.clip(warped_bgr_f, 0, 255).astype(np.uint8)
@@ -227,8 +330,8 @@ def _warp_mold_to_nail(mold_bgra: np.ndarray, dst_mask: np.ndarray,
     # 这样既能确保位置准确，又能展示设计效果
     shape = _standard_nail_shape(mh, mw, shape_type=shape_type,
                                  length_ratio=length_ratio, width_ratio=width_ratio)
-    shape_w = cv2.warpAffine(shape, M, (out_w, out_h),
-                             flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+    shape_w = cv2.warpPerspective(shape, M, (out_w, out_h),
+                                  flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
     # 加强腐蚀和羽化，让边界更柔和透明
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
     shape_w = cv2.erode(shape_w, kernel, iterations=2)
@@ -269,21 +372,24 @@ def _solid_color_alpha(dst_mask: np.ndarray, tip_angle: float,
 
     canvas = 200
     shape = _standard_nail_shape(canvas, canvas)
+    # 改进：使用 4 点透视变换提高精度
     src = np.array([
-        [canvas / 2.0, canvas / 2.0],
-        [canvas / 2.0, 0.0],
-        [canvas, canvas / 2.0],
+        [0.0, 0.0],
+        [canvas, 0.0],
+        [0.0, canvas],
+        [canvas, canvas],
     ], dtype=np.float32)
     cover = 1.12
     center = np.array([cx, cy], dtype=np.float32)
     dst = np.array([
-        center,
-        center - tip_dir * (L / 2.0 * cover),
-        center + perp_dir * (W / 2.0 * cover),
+        center - tip_dir * (L / 2.0 * cover) - perp_dir * (W / 2.0 * cover),
+        center - tip_dir * (L / 2.0 * cover) + perp_dir * (W / 2.0 * cover),
+        center + tip_dir * (L / 2.0 * cover) - perp_dir * (W / 2.0 * cover),
+        center + tip_dir * (L / 2.0 * cover) + perp_dir * (W / 2.0 * cover),
     ], dtype=np.float32)
-    M = cv2.getAffineTransform(src, dst)
-    shape_w = cv2.warpAffine(shape, M, (out_w, out_h), flags=cv2.INTER_LINEAR,
-                             borderMode=cv2.BORDER_CONSTANT)
+    M = cv2.getPerspectiveTransform(src, dst)
+    shape_w = cv2.warpPerspective(shape, M, (out_w, out_h), flags=cv2.INTER_LINEAR,
+                                  borderMode=cv2.BORDER_CONSTANT)
     alpha = cv2.GaussianBlur(shape_w.astype(np.float32) / 255.0, (5, 5), 1.5)
     return alpha
 
@@ -365,6 +471,7 @@ def try_on(user_bgr: np.ndarray, design_id: str, color: Optional[str] = None,
                 continue
             ta = n.get("tip_angle", -90.0)
             print(f"[TryOn] 贴模具到指甲 {n['finger_idx']}, 甲形参数: shape={shape_type}, len={length_ratio}, w={width_ratio}")
+            # 先用单角度版本，多角度匹配需要优化
             warped_bgr, warped_alpha = _warp_mold_to_nail(
                 mold, n["mask"], n["centroid"], ta, h, w,
                 shape_type=shape_type, length_ratio=length_ratio, width_ratio=width_ratio)

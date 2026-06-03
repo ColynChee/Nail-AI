@@ -20,7 +20,9 @@ import numpy as np
 import cv2
 
 _MODEL = None
+_MODEL_FIST = None
 _MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", "nails_seg_yolov8.pt")
+_MODEL_FIST_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", "nails_seg_fist.pt")
 # RTX 5060 (sm_120) 当前 torch cu124 不支持，先用 CPU。升级 cu128 后改 "cuda:0"。
 _DEVICE = "cpu"
 
@@ -30,25 +32,56 @@ _FINGERBASE_LM = [2, 5, 9, 13, 17]   # 对应指根(MCP)关键点，用于算指
 
 
 def _minarea_tip_angle(mask: np.ndarray) -> float:
-    """无 MediaPipe 时兜底：用 minAreaRect 长轴方向估指尖角度(度)。
-    歧义消解：假设指尖朝上(y 减小方向)。"""
-    cnts, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if not cnts:
-        return -90.0
-    (cx, cy), (w, h), ang = cv2.minAreaRect(max(cnts, key=cv2.contourArea))
-    # minAreaRect 的 angle 是宽边相对水平角；长轴方向另算
-    if w >= h:
-        axis = ang
-    else:
-        axis = ang + 90
-    a = np.radians(axis)
-    # 让指尖朝上：若方向向量 y 分量为正(朝下)，翻转 180°
-    if np.sin(a) > 0:
-        axis += 180
-    return float(axis)
+    """用 mask 的极端点计算指尖角度(度) —— 更精准的方法。
+
+    算法：找出指甲 mask 上沿各个方向最远的点，计算从指根到指尖的实际方向。
+    这避免了依赖 MediaPipe 关键点或标准化假设，直接基于指甲形状。"""
+    ys, xs = np.where(mask)
+    if len(xs) < 10:  # 点太少，降级使用原有方法
+        cnts, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not cnts:
+            return -90.0
+        (cx, cy), (w, h), ang = cv2.minAreaRect(max(cnts, key=cv2.contourArea))
+        if w >= h:
+            return float(ang)
+        else:
+            return float(ang + 90)
+
+    pts = np.column_stack([xs, ys]).astype(np.float32)
+    center = np.mean(pts, axis=0)
+
+    # 方法：在多个方向上找最远点，选择跨度最大的作为主轴
+    angles_to_try = np.linspace(0, 180, 36)  # 尝试 36 个方向
+    max_span = 0
+    best_angle = -90.0
+
+    for test_angle in angles_to_try:
+        a = np.radians(test_angle)
+        dir_vec = np.array([np.cos(a), np.sin(a)])
+        projections = (pts - center) @ dir_vec
+        span = np.max(projections) - np.min(projections)
+
+        if span > max_span:
+            max_span = span
+            # 找出该方向上最远的两个点
+            tip_idx = np.argmax(projections)
+            root_idx = np.argmin(projections)
+            tip_pt = pts[tip_idx]
+            root_pt = pts[root_idx]
+
+            # 计算实际方向
+            actual_dir = tip_pt - root_pt
+            if np.linalg.norm(actual_dir) > 0.1:
+                actual_dir = actual_dir / np.linalg.norm(actual_dir)
+                actual_angle = float(np.degrees(np.arctan2(actual_dir[1], actual_dir[0])))
+                # 转换为"指向上方"的约定
+                best_angle = actual_angle - 90
+
+    return float(best_angle)
 
 
 def get_seg_model():
+    """获取张开手模型"""
     global _MODEL
     if _MODEL is None:
         from ultralytics import YOLO
@@ -56,10 +89,23 @@ def get_seg_model():
     return _MODEL
 
 
-def _yolo_nails(image: np.ndarray, conf: float = 0.25) -> List[Dict]:
-    """跑 YOLO，返回每个指甲的 mask/conf/centroid/contour（未标 finger_idx）。"""
+def get_seg_model_fist():
+    """获取握拳手模型"""
+    global _MODEL_FIST
+    if _MODEL_FIST is None:
+        from ultralytics import YOLO
+        _MODEL_FIST = YOLO(_MODEL_FIST_PATH)
+    return _MODEL_FIST
+
+
+def _yolo_nails(image: np.ndarray, conf: float = 0.25, model_type: str = "open") -> List[Dict]:
+    """跑 YOLO，返回每个指甲的 mask/conf/centroid/contour（未标 finger_idx）。
+    model_type: "open"(张开手) / "fist"(握拳)"""
     h, w = image.shape[:2]
-    model = get_seg_model()
+    if model_type == "fist":
+        model = get_seg_model_fist()
+    else:
+        model = get_seg_model()
     results = model.predict(image, conf=conf, verbose=False, device=_DEVICE)
     r = results[0]
     out = []
@@ -183,12 +229,119 @@ def _assign_via_position(nails: List[Dict]) -> None:
         n["finger_idx"] = i if i < 5 else -1
 
 
+def detect_hand_pose(image: np.ndarray) -> Optional[str]:
+    """检测手部姿态：张开手或握拳。
+    基于 MediaPipe 关键点：
+      - 开放手：指尖之间的距离大，掌心到指尖距离差异大
+      - 握拳手：指尖之间距离小，指尖都靠近掌心
+    返回 "open" / "fist" / None(检测失败)"""
+    try:
+        from hand_detector import get_detector
+        result = get_detector().detect(image)
+    except Exception:
+        return None
+    if not result.get("success") or not result.get("hands"):
+        return None
+
+    h, w = image.shape[:2]
+    # 选择跨度最大的手
+    best_hand = None
+    best_area = -1.0
+    for hand in result["hands"]:
+        lms = hand["landmarks"]
+        xs = [lm["x"] for lm in lms]
+        ys = [lm["y"] for lm in lms]
+        area = (max(xs) - min(xs)) * (max(ys) - min(ys))
+        if area > best_area:
+            best_area, best_hand = area, hand
+
+    lms = best_hand["landmarks"]
+
+    # 方法：比较指尖到掌心的距离
+    # 掌心是 lm 9 (PalmCenter or middle of 5, 17)
+    palm_x = (lms[5]["x"] + lms[9]["x"] + lms[13]["x"] + lms[17]["x"]) / 4.0
+    palm_y = (lms[5]["y"] + lms[9]["y"] + lms[13]["y"] + lms[17]["y"]) / 4.0
+    palm_x *= w
+    palm_y *= h
+
+    # 计算每个手指指尖到掌心的距离
+    tip_distances = []
+    for fi in range(5):
+        tip_lm = _FINGERTIP_LM[fi]  # 指尖关键点
+        tx, ty = lms[tip_lm]["x"] * w, lms[tip_lm]["y"] * h
+        dist = ((tx - palm_x) ** 2 + (ty - palm_y) ** 2) ** 0.5
+        tip_distances.append(dist)
+
+    # 判断姿态：基于指尖到掌心的最小距离
+    # - 握拳：指尖都靠近掌心 → min_distance 很小
+    # - 张开手：指尖远离掌心 → min_distance 很大
+    avg_distance = np.mean(tip_distances)
+    min_distance = np.min(tip_distances)
+    max_distance = np.max(tip_distances)
+
+    print(f"[detect_hand_pose] avg_dist={avg_distance:.1f}, min_dist={min_distance:.1f}, max_dist={max_distance:.1f}")
+    print(f"[detect_hand_pose] 握拳判定: {min_distance:.1f} < {avg_distance * 0.4:.1f}? {min_distance < avg_distance * 0.4}")
+    print(f"[detect_hand_pose] 张开判定: {min_distance:.1f} > {avg_distance * 0.6:.1f}? {min_distance > avg_distance * 0.6}")
+
+    if min_distance < avg_distance * 0.4:
+        print(f"[detect_hand_pose] -> 识别为 FIST (握拳)")
+        return "fist"
+    elif min_distance > avg_distance * 0.6:
+        print(f"[detect_hand_pose] -> 识别为 OPEN (张开手)")
+        return "open"
+    else:
+        # 无法确定（半握等中间状态）
+        print(f"[detect_hand_pose] -> 无法确定 (返回 None)")
+        return None
+
+
 def segment_nails(image: np.ndarray, conf: float = 0.25) -> List[Dict]:
     """分割 + 标注 finger_idx + tip_angle(指尖朝向角度,度)。
-    返回指甲 dict 列表（已过滤到主手）。"""
-    nails = _yolo_nails(image, conf=conf)
+    自动检测手部姿态（张开/握拳），选择对应模型。
+    返回指甲 dict 列表（已过滤到主手）。
+
+    Notes:
+      - 第一步检测手部姿态（open/fist/None）
+      - 如果检测成功，用对应模型分割；如果失败，尝试两个模型并选择结果更好的
+      - 返回的 dict 中 _pose 字段标记检测到的姿态，_model_used 标记使用的模型
+    """
+    # 第一步：检测手部姿态
+    pose = detect_hand_pose(image)
+
+    if pose is None:
+        # 姿态检测失败 → 尝试两个模型，选择结果更好的
+        nails_open = _yolo_nails(image, conf=conf, model_type="open")
+        nails_fist = _yolo_nails(image, conf=conf, model_type="fist")
+
+        # 比较两个结果：选择检测到更多指甲且置信度更高的
+        score_open = sum(n["conf"] for n in nails_open) if nails_open else 0
+        score_fist = sum(n["conf"] for n in nails_fist) if nails_fist else 0
+
+        if score_open > score_fist:
+            nails = nails_open
+            model_type = "open"
+            pose = "open_fallback"
+        elif score_fist > score_open:
+            nails = nails_fist
+            model_type = "fist"
+            pose = "fist_fallback"
+        else:
+            # 两个都一样，倾向于用 open 模型（通常更稳定）
+            nails = nails_open
+            model_type = "open"
+            pose = "open_default"
+    else:
+        # 姿态检测成功 → 用对应的模型
+        model_type = "fist" if pose == "fist" else "open"
+        nails = _yolo_nails(image, conf=conf, model_type=model_type)
+
     if not nails:
         return []
+
+    # 将检测到的手部姿态添加到每个指甲的返回数据中（用于调试）
+    for n in nails:
+        n["_pose"] = pose
+        n["_model_used"] = model_type
 
     tips, all_pts, tip_angles = _select_main_hand(image)
     if tips is not None:
@@ -207,6 +360,13 @@ def segment_nails(image: np.ndarray, conf: float = 0.25) -> List[Dict]:
         _assign_via_position(nails)
         for n in nails:
             n["tip_angle"] = _minarea_tip_angle(n["mask"])
+
+    # 为所有指甲添加姿态标记
+    is_fist = (pose == "fist")
+    for n in nails:
+        n["_is_fist"] = is_fist
+    print(f"[segment_nails] 最终 pose={pose}, is_fist={is_fist}")
+
     return nails
 
 

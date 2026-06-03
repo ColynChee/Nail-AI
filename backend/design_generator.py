@@ -218,8 +218,18 @@ def extract_nails_from_preview(preview_img: np.ndarray) -> list:
     print(f"[Design] 有效轮廓: {len(valid_contours)} 个")
 
     if len(valid_contours) >= 5:
-        # 轮廓方法：按 x 坐标排序，取最大的 5 个
-        nail_contours = sorted(valid_contours, key=lambda c: cv2.boundingRect(c)[0])[-5:]
+        # 如果超过5个轮廓，可能是多排，只取最上排的5个
+        # 策略：取y坐标最小（最靠上）的5个，即只取第一排
+        if len(valid_contours) > 5:
+            # 按每个轮廓的y中心排序，取最靠上的5个
+            def contour_cy(c):
+                _, y, _, h = cv2.boundingRect(c)
+                return y + h / 2
+            top_row = sorted(valid_contours, key=contour_cy)[:5]
+            nail_contours = sorted(top_row, key=lambda c: cv2.boundingRect(c)[0])
+            print(f"[Design] 检测到{len(valid_contours)}个轮廓，取最上排5个")
+        else:
+            nail_contours = sorted(valid_contours, key=lambda c: cv2.boundingRect(c)[0])
         print(f"[Design] 使用轮廓方法提取指甲")
     else:
         print(f"[Design] 轮廓不足，使用等分方法")
@@ -251,10 +261,15 @@ def extract_nails_from_preview(preview_img: np.ndarray) -> list:
                 nail_crop = cv2.resize(nail_crop, (new_w, new_h), interpolation=cv2.INTER_AREA)
 
                 nail_bgra = cv2.cvtColor(nail_crop, cv2.COLOR_BGR2BGRA)
-                # 全不透明（等分方法没有 mask，保留整个裁剪区域）
-                nail_bgra[:,:,3] = 255
+                # 在裁剪区域内用threshold去除白色背景
+                crop_gray = cv2.cvtColor(nail_crop, cv2.COLOR_BGR2GRAY)
+                _, alpha_mask = cv2.threshold(crop_gray, 200, 255, cv2.THRESH_BINARY_INV)
+                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+                alpha_mask = cv2.morphologyEx(alpha_mask, cv2.MORPH_CLOSE, kernel)
+                alpha_mask = cv2.GaussianBlur(alpha_mask, (3, 3), 0)
+                nail_bgra[:,:,3] = alpha_mask
                 nails.append(nail_bgra)
-                print(f"[Design] 指甲 {fi}: {nail_bgra.shape} (等分法)")
+                print(f"[Design] 指甲 {fi}: {nail_bgra.shape} (等分法+alpha去背景)")
 
         return nails
 

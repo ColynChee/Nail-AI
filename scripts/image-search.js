@@ -39,14 +39,11 @@ function resetImgSearch() {
 // 检测美甲功能
 // ═══════════════════════════════════
 function switchImgTab(tab) {
-  // 更新标签页样式
-  document.getElementById('tab-search').classList.toggle('on', tab === 'search');
+  document.getElementById('tab-inspire').classList.toggle('on', tab === 'inspire');
   document.getElementById('tab-detect').classList.toggle('on', tab === 'detect');
 
-  // 显示对应区域
-  document.getElementById('section-search').style.display = tab === 'search' ? 'flex' : 'none';
+  document.getElementById('section-inspire').style.display = tab === 'inspire' ? 'block' : 'none';
   document.getElementById('section-detect').style.display = tab === 'detect' ? 'flex' : 'none';
-  document.getElementById('isearch-examples').style.display = tab === 'search' ? 'block' : 'none';
 }
 
 async function runDetectNails() {

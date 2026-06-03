@@ -68,7 +68,7 @@
         </button>
         <button class="qbtn" onclick="go('s-imgsearch')">
           <div class="qi" style="background:#F5F0FF"><svg viewBox="0 0 24 24" stroke="var(--purple)"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L22 22"/><path d="M8 11h6M11 8v6"/></svg></div>
-          <span>以图搜款</span>
+          <span>以图试戴</span>
         </button>
         <button class="qbtn" onclick="openSkinSheet()">
           <div class="qi" style="background:#F0FDFB"><svg viewBox="0 0 24 24" stroke="var(--teal)"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 8v4l3 3"/></svg></div>
@@ -191,7 +191,7 @@
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/><path d="M8 11h6M11 8v6"/></svg>
       </div>
       <div class="isb-text">
-        <div class="isb-title">以图搜款 ✨</div>
+        <div class="isb-title">以图试戴 ✨</div>
         <div class="isb-sub">上传参考图，AI 识别匹配相似款式</div>
       </div>
       <div class="isb-arrow">›</div>
@@ -224,7 +224,7 @@
 </div>
 
 <!-- ════════════════════════════════
-  ③ IMAGE SEARCH (以图搜款)
+  ③ IMAGE SEARCH (以图试戴)
 ════════════════════════════════ -->
 <div class="screen" id="s-imgsearch">
   <div class="sbar"><span class="sbar-l">9:41</span><div class="sbar-r"><span>●●●</span><span>WiFi</span><span>98%</span></div></div>
@@ -232,7 +232,7 @@
     <button class="icon-btn icon-btn-ghost" onclick="go('s-gallery');resetImgSearch()">
       <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
-    <span class="nav-title">以图搜款</span>
+    <span class="nav-title">以图试戴</span>
     <div style="width:34px"></div>
   </div>
   <div class="scroll-body">
@@ -240,19 +240,8 @@
 
       <!-- Tab switch -->
       <div style="display:flex;gap:12px;margin-bottom:20px;padding:0 16px">
-        <button class="tab-btn on" onclick="switchImgTab('search')" id="tab-search">以图搜款</button>
+        <button class="tab-btn on" onclick="switchImgTab('inspire')" id="tab-inspire">灵感试戴</button>
         <button class="tab-btn" onclick="switchImgTab('detect')" id="tab-detect">检测美甲</button>
-      </div>
-
-      <!-- Upload area - Search -->
-      <div id="section-search" class="isearch-upload" id="isearch-upload" onclick="document.getElementById('isearch-input').click()">
-        <div class="isearch-upload-icon">
-          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        </div>
-        <div class="isearch-upload-title">上传参考图</div>
-        <div class="isearch-upload-sub">从相册选择你喜欢的美甲照片<br>支持 JPG / PNG / HEIC</div>
-        <button class="isearch-upload-btn">选择图片</button>
-        <input type="file" id="isearch-input" accept="image/*" onchange="runImgSearch()" style="display:none">
       </div>
 
       <!-- Upload area - Detect -->
@@ -269,18 +258,39 @@
       </div>
 
 
-      <!-- Example thumbnails -->
-      <div id="isearch-examples">
-        <div class="examples-label">或试试这些风格 👇</div>
-        <div class="example-chips">
-          <div class="ex-chip" onclick="simulateImgSearch('🌸','粉调花卉系','89')"><span class="ex-emoji">🌸</span>花卉系</div>
-          <div class="ex-chip" onclick="simulateImgSearch('✨','金属闪光系','92')"><span class="ex-emoji">✨</span>金属闪</div>
-          <div class="ex-chip" onclick="simulateImgSearch('🤍','简约奶白系','95')"><span class="ex-emoji">🤍</span>极简白</div>
-          <div class="ex-chip" onclick="simulateImgSearch('🌈','彩虹渐变系','87')"><span class="ex-emoji">🌈</span>渐变色</div>
-          <div class="ex-chip" onclick="simulateImgSearch('💅','法式经典系','91')"><span class="ex-emoji">💅</span>法式</div>
-          <div class="ex-chip" onclick="simulateImgSearch('🍓','红调甜蜜系','88')"><span class="ex-emoji">🍓</span>甜蜜红</div>
+      <!-- 灵感试戴区块 -->
+      <div id="section-inspire" style="display:block">
+        <div class="isearch-upload" onclick="document.getElementById('inspiration-file').click()">
+          <div class="isearch-upload-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          </div>
+          <div class="isearch-upload-title">上传灵感图</div>
+          <div class="isearch-upload-sub">AI自动去除手部，生成标准模具<br>直接用于你的手部虚拟试戴</div>
+          <button class="isearch-upload-btn">选择灵感图</button>
+          <input type="file" id="inspiration-file" accept="image/*" style="display:none" onchange="handleInspirationUpload(event)">
+        </div>
+
+        <!-- 生成中状态 -->
+        <div id="inspiration-loading" style="display:none;padding:16px;background:var(--warm-gray);border-radius:var(--rMd);text-align:center;margin-top:12px">
+          <div style="font-size:13px;color:var(--text-dark);margin-bottom:8px">✨ AI正在分析设计并生成模具...</div>
+          <div style="font-size:11px;color:var(--text-soft);margin-bottom:8px" id="inspiration-status">分析灵感图中...</div>
+          <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+            <div id="inspiration-progress-bar" style="height:100%;background:var(--orange);width:0%;transition:width 0.5s ease;border-radius:2px"></div>
+          </div>
+        </div>
+
+        <!-- 生成结果预览 -->
+        <div id="inspiration-result" style="display:none;margin-top:12px;padding:12px;background:var(--warm-gray);border-radius:var(--rMd)">
+          <div style="font-size:12px;color:var(--text-soft);margin-bottom:8px">✅ 模具生成成功！</div>
+          <img id="inspiration-template-preview" style="width:100%;border-radius:var(--rSm);margin-bottom:8px" src="">
+          <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px" id="inspiration-design-desc"></div>
+          <button onclick="startInspirationTryon()"
+            style="width:100%;padding:12px;border:none;background:var(--orange);border-radius:var(--rMd);font-size:13px;color:white;cursor:pointer;font-family:inherit;font-weight:600">
+            用这个款式开始试戴 →
+          </button>
         </div>
       </div>
+
 
       <!-- Loading -->
       <div class="isearch-spinner" id="isearch-spinner">
@@ -479,14 +489,26 @@
         <div class="tip"><div class="tip-dot"></div><span>指甲清洁，卸除旧甲油效果更佳</span></div>
       </div>
 
-      <!-- also: search by nail image shortcut -->
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px 14px;background:var(--purple-light);border-radius:var(--rMd);border:.5px solid var(--border);cursor:pointer" id="tryon-tips" onclick="go('s-imgsearch')">
-        <span style="font-size:20px">🔍</span>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--text-dark)">没有喜欢的款式？</div>
-          <div style="font-size:11px;color:var(--text-soft);margin-top:1px">上传参考图，以图搜款</div>
+      <!-- nail detection preview -->
+      <div class="tryon-detection-preview" id="tryon-detection-preview" style="display:none;margin-bottom:16px;padding:12px;background:var(--bg);border-radius:var(--rMd);border:1px solid var(--border)">
+        <div style="font-size:12px;color:var(--text-soft);margin-bottom:8px">🔍 指甲检测预览</div>
+        <div style="position:relative;width:100%;max-width:300px;margin:0 auto;border:1px solid var(--border);border-radius:6px;overflow:hidden">
+          <img id="tryon-preview-image" src="" style="width:100%;display:block" alt="">
+          <canvas id="tryon-detection-canvas" style="position:absolute;top:0;left:0;width:100%"></canvas>
         </div>
-        <span style="margin-left:auto;color:var(--text-soft);font-size:16px">›</span>
+        <div style="font-size:13px;color:var(--text-mid);margin-top:8px;text-align:center;min-height:24px;font-weight:500" id="tryon-detection-message">
+          <span id="tryon-progress-message">准备检测...</span>
+        </div>
+        <div style="margin-top:8px;width:100%">
+          <div style="width:100%;height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+            <div id="tryon-progress-bar" style="width:0%;height:100%;background:var(--orange);transition:width 0.3s ease;border-radius:2px"></div>
+          </div>
+          <div style="font-size:10px;color:var(--text-soft);margin-top:4px;text-align:right" id="tryon-progress-percent">0%</div>
+        </div>
+        <div id="tryon-detection-buttons" style="display:none;gap:8px;margin-top:10px;justify-content:center">
+          <button class="btn-primary" style="flex:1;padding:10px;font-size:12px" onclick="confirmNailDetection()">确认 ✓</button>
+          <button style="flex:1;padding:10px;border:1.5px solid var(--border);background:var(--white);border-radius:var(--rMd);font-size:12px;cursor:pointer;font-family:inherit;color:var(--text-mid)" onclick="resetTryon()">重新选择</button>
+        </div>
       </div>
 
       <!-- processing -->
@@ -505,12 +527,10 @@
         <div class="result-preview">
           <div class="preview-emoji" id="tryon-result-emoji">💅</div>
           <div style="font-size:13px;font-weight:700;color:var(--text-dark)" id="tryon-result-label">效果预览 · 樱花奶油</div>
-          <div class="result-before-after" style="margin-top:10px">
-            <div class="ba-box"><div class="ba-emoji">🤚</div><div class="ba-label">原始手型</div></div>
-            <div style="display:flex;align-items:center;font-size:18px;color:var(--text-soft)">→</div>
-            <div class="ba-box" id="tryon-ba-emoji"><div class="ba-emoji">💅</div><div class="ba-label">试戴效果</div></div>
-          </div>
         </div>
+
+        <!-- 增强按钮 -->
+        <button id="tryon-enhance-btn" style="width:100%;padding:12px;margin-top:12px;border:1.5px solid var(--orange);background:transparent;border-radius:var(--rMd);font-size:13px;color:var(--orange);cursor:pointer;font-family:inherit;font-weight:600" onclick="enhanceTryonEffect()">✨ 试戴效果不满意？增强</button>
 
         <div class="ai-analysis">
           <div class="ai-analysis-header">
@@ -518,10 +538,21 @@
           </div>
           <div class="match-pct-row">
             <div class="match-metric"><div class="mm-val" id="tryon-match-score">96%</div><div class="mm-label">肤色匹配度</div></div>
-            <div class="match-metric"><div class="mm-val">A+</div><div class="mm-label">手型评级</div></div>
-            <div class="match-metric"><div class="mm-val">#1</div><div class="mm-label">本周热度</div></div>
+            <div class="match-metric"><div class="mm-val" id="tryon-skin-tone">—</div><div class="mm-label">肤色</div></div>
+            <div class="match-metric"><div class="mm-val" id="tryon-hand-rating">A+</div><div class="mm-label">手型评级</div></div>
           </div>
           <div class="ai-text" id="tryon-ai-text">你的手型偏修长，搭配这款粉调奶油色会显得气质温柔。偏暖白肤色与此款匹配度极高，特别推荐尝试！适合场景：约会、日常通勤、春日踏青。</div>
+
+          <!-- 色系和风格推荐 -->
+          <div style="margin-top:12px;padding:10px;background:var(--warm-gray);border-radius:var(--rSm)">
+            <div style="font-size:11px;color:var(--text-soft);margin-bottom:6px">✨ 为你的肤色推荐</div>
+            <div id="tryon-color-style-recommendations">
+              <div style="font-size:11px;color:var(--text-mid);line-height:1.6">
+                <div style="margin-bottom:4px"><strong style="color:var(--text-dark)">推荐色系：</strong><span id="rec-primary">—</span></div>
+                <div style="margin-bottom:4px"><strong style="color:var(--text-dark)">推荐风格：</strong><span id="rec-styles">—</span></div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="result-actions">
@@ -626,7 +657,7 @@
       </div>
       <div class="menu-item" onclick="go('s-imgsearch')">
         <div class="m-icon" style="background:var(--purple-light)"><svg viewBox="0 0 24 24" style="stroke:var(--purple)"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/><path d="M8 11h6M11 8v6"/></svg></div>
-        <div class="m-label">以图搜款历史</div>
+        <div class="m-label">以图试戴历史</div>
         <div class="m-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
       </div>
       <div class="menu-item" onclick="go('s-tryon')">

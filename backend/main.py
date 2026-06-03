@@ -4,22 +4,39 @@
 - design_id 或 design_image 定位款式
 - color 给定 → 纯色合成模式(可任意换色)；否则 → 模具贴图模式
 """
-from fastapi import FastAPI, File, Form, UploadFile, HTTPException
+from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Callable
 import json
 import cv2
 import numpy as np
 from pathlib import Path
+import base64
+import os
 
 from hand_detector import get_detector
 from analytics import log_try_on, log_analyze_hand, get_analytics, get_design_analytics
-import nail_tryon_v2
+# [Phase 2 测试] 临时切换到极端点对齐版本
+import nail_tryon_v2_extreme as nail_tryon_v2
+import nail_seg
 from design_generator import generate_design_preview, confirm_design
+from ai_analysis import analyze_with_vision
+from image_enhancer import enhance_nail_tryon
+from mold_generator import generate_mold_from_inspiration
 
 app = FastAPI(title="美甲AI试戴后端服务", version="2.0.0")
+
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    print(f"[422错误] URL: {request.url}")
+    print(f"[422错误] 详情: {exc.errors()}")
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,6 +49,13 @@ app.add_middleware(
 # 设计文件目录
 DESIGNS_GEN_DIR = Path(__file__).resolve().parent.parent / "designs_generated"
 DESIGNS_GEN_DIR.mkdir(exist_ok=True)
+
+# 临时图片目录（用于API调用）
+TEMP_IMAGE_DIR = Path(__file__).resolve().parent / ".temp_images"
+TEMP_IMAGE_DIR.mkdir(exist_ok=True)
+
+# 挂载临时图片目录为静态文件服务
+app.mount("/temp_images", StaticFiles(directory=TEMP_IMAGE_DIR), name="temp_images")
 
 with open("designs.json", "r", encoding="utf-8") as f:
     DESIGNS = json.load(f)["designs"]
@@ -54,6 +78,21 @@ def _find_design(design_id: Optional[str], design_image: Optional[str]) -> Dict:
                 }
             else:
                 raise HTTPException(status_code=404, detail=f"AI 生成设计不存在: {design_id}")
+
+        # 检查是否是灵感图生成的设计
+        if design_id.startswith("insp_"):
+            molds_path = Path(__file__).resolve().parent / "molds" / design_id
+            if molds_path.exists():
+                return {
+                    "id": design_id,
+                    "name": "灵感试戴款式",
+                    "image": "",
+                    "emoji": "🌟",
+                    "bg": "#FFF4F0",
+                    "price": "AI",
+                }
+            else:
+                raise HTTPException(status_code=404, detail=f"灵感设计不存在: {design_id}")
 
         # 查找静态款式
         d = next((x for x in DESIGNS if x["id"] == design_id), None)
@@ -141,13 +180,20 @@ async def try_on(
     shape: str = "oval",
     length: float = 1.0,
     width: float = 1.0,
+    nail_angles: Optional[str] = None,
+    nails_bounds: Optional[str] = None,
+    opacity: float = 0.85,
+    skip_analysis: Optional[str] = None,
 ):
     """AI 试戴。
     - color 给定(hex 如 %23A8B04D / #A8B04D) → 纯色合成；否则用款式模具贴图。
     - shape: "oval"(椭圆) / "almond"(尖形) / "square"(方形)
     - length / width: 0.5-1.5 的长宽系数
+    - nail_angles: JSON 字符串，格式 {"0": 90.5, "2": 120.0, ...} 用户调整的指甲角度（可选）
+    - nails_bounds: JSON 字符串，从前端检测结果获取的指甲边界信息（可选，优先使用）
     """
     try:
+
         design = _find_design(design_id, design_image)
         did = design["id"]
 
@@ -162,10 +208,55 @@ async def try_on(
         length = max(0.5, min(1.5, float(length)))
         width = max(0.5, min(1.5, float(width)))
 
-        print(f"[TryOn] 接收参数: color={color}, shape={shape}, length={length}, width={width}")
+        # 解析用户调整的指甲角度（过滤掉null/NaN值）
+        custom_angles = {}
+        if nail_angles:
+            try:
+                import json
+                raw_angles = json.loads(nail_angles)
+                custom_angles = {
+                    k: v for k, v in raw_angles.items()
+                    if v is not None and v == v  # v==v 过滤NaN
+                }
+                if custom_angles:
+                    print(f"[TryOn] 用户自定义指甲角度: {custom_angles}")
+            except Exception as e:
+                print(f"[TryOn] 解析 nail_angles 失败: {e}")
 
+        # 解析前端检测结果的指甲边界
+        preset_bounds = None
+        if nails_bounds:
+            try:
+                import json
+                preset_bounds = json.loads(nails_bounds)
+                print(f"[TryOn] 接收前端检测的指甲边界: {len(preset_bounds)} 个")
+            except Exception as e:
+                print(f"[TryOn] 解析 nails_bounds 失败: {e}")
+
+        print(f"[TryOn] 接收参数: color={color}, shape={shape}, length={length}, width={width}, 有预置边界={preset_bounds is not None}")
+
+        # 优先使用前端检测的指甲边界，如果没有才自己检测
+        pre_nails = None
+        if preset_bounds:
+            print(f"[TryOn] 使用前端检测的指甲边界: {len(preset_bounds)} 个")
+            # 注：preset_bounds是前端检测的结果，包含cx, cy, width, height, angle等
+            # 后端会在try_on中使用这些信息，无需额外处理
+            pre_nails = preset_bounds
+        elif custom_angles:
+            # 如果没有前端检测结果但有自定义角度，则自己分割并应用角度
+            from nail_seg import segment_nails as seg_nails
+            pre_nails = seg_nails(img)
+            # 应用用户自定义的角度
+            for nail in pre_nails:
+                finger_idx = str(nail.get("finger_idx", -1))
+                if finger_idx in custom_angles:
+                    nail["tip_angle"] = float(custom_angles[finger_idx])
+                    print(f"[TryOn] 应用自定义角度: 指甲{finger_idx} -> {nail['tip_angle']:.1f}°")
+
+        # 调用试戴（如果有pre_nails则使用前端检测，否则后端自动检测）
         result = nail_tryon_v2.try_on(img, did, color=color,
-                                      shape_type=shape, length_ratio=length, width_ratio=width)
+                                      shape_type=shape, length_ratio=length, width_ratio=width,
+                                      pre_nails=pre_nails, opacity=opacity)
         if not result["success"]:
             log_try_on(did, design.get("name", ""), None, False)
             return {"success": False, "message": result.get("error", "试戴失败"), "design": design}
@@ -173,6 +264,39 @@ async def try_on(
         b64 = cv2.imencode(".jpg", result["image"], [cv2.IMWRITE_JPEG_QUALITY, 88])[1]
         import base64
         image_base64 = base64.b64encode(b64).decode("utf-8")
+
+        # 生成 AI 分析（使用 Qwen VL 进行多模态分析）
+        design_image_path = None
+        try:
+            # 获取美甲款式的详细图路径
+            if "image" in design and design["image"]:
+                # 如果是相对路径，转换为绝对路径
+                if not os.path.isabs(design["image"]):
+                    design_image_path = os.path.join(
+                        Path(__file__).resolve().parent.parent,
+                        design["image"]
+                    )
+                else:
+                    design_image_path = design["image"]
+
+                if not os.path.exists(design_image_path):
+                    print(f"[TryOn] 款式图不存在: {design_image_path}")
+                    design_image_path = None
+        except Exception as e:
+            print(f"[TryOn] 获取款式图路径失败: {e}")
+
+        if skip_analysis:
+            print(f"[TryOn] 跳过 AI 分析（参数调整）")
+            analysis = None
+        else:
+            print(f"[TryOn] 调用 Qwen VL 进行 AI 分析...")
+            analysis = analyze_with_vision(
+                hand_image=img,
+                design_image_path=design_image_path,
+                design_name=design.get("name", "当前款式")
+            )
+        if analysis:
+            print(f"[TryOn] AI 分析完成: 匹配度 {analysis.get('confidence', 0):.0%}")
 
         log_try_on(did, design.get("name", ""), None, True)
         return {
@@ -183,6 +307,7 @@ async def try_on(
             "mode": result.get("mode"),
             "n_applied": result.get("n_applied"),
             "color": color,
+            "analysis": analysis,
         }
     except HTTPException:
         raise
@@ -240,21 +365,149 @@ async def confirm_nail_design_endpoint(design_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post("/api/detect-nails-preview", tags=["美甲检测"])
-async def detect_nails_preview_endpoint(image: UploadFile = File(...)):
-    """预检测：返回原图和检测到的指甲位置（用于编辑器）。
+# ===== 检测流程辅助函数（支持进度回调）=====
+def _encode_img_to_base64(img_cv2) -> str:
+    """将 OpenCV 图片编码为 base64 data URL。"""
+    _, buf = cv2.imencode(".jpg", img_cv2)
+    img_base64 = base64.b64encode(buf).decode("utf-8")
+    return f"data:image/jpeg;base64,{img_base64}"
+
+
+async def detect_nails_with_progress(
+    img_bytes: bytes,
+    progress_callback: Optional[Callable[[str, Optional[str]], None]] = None
+) -> Dict:
+    """执行指甲检测，支持进度回调与中间图片推送。
 
     Args:
-        image: 用户上传的指甲图片
+        img_bytes: 图片二进制数据
+        progress_callback: 进度回调函数 (message: str, image_data: Optional[str]) -> None
 
     Returns:
-        {
-            "success": bool,
-            "image_data": "base64编码的图片",
-            "nails_bounds": [{"id": 0, "top": 0.1, "left": 0.1, "bottom": 0.8, "right": 0.4}],
-            "message": str
-        }
+        检测结果字典
     """
+    try:
+        # 解码图片
+        if progress_callback:
+            progress_callback("加载图片...")
+        nparr = np.frombuffer(img_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+        if img is None:
+            return {"success": False, "message": "图片读取失败"}
+
+        h, w = img.shape[:2]
+
+        # 步骤 1: YOLO 分割
+        nails = nail_seg.segment_nails(img)
+        nails = [n for n in nails if n["finger_idx"] >= 0]
+
+        if not nails:
+            return {"success": False, "message": "未检测到指甲"}
+
+        print(f"[DetectNails] 使用 YOLO 检测到 {len(nails)} 个指甲")
+
+        # 推送分割完成消息（不包含图片）
+        if progress_callback:
+            progress_callback("✓ 指甲分割完成", None)
+
+        # 步骤 2: 计算指甲方向（PCA）
+        nails_bounds = []
+        for idx, nail in enumerate(nails):
+            mask = nail["mask"]
+            ys, xs = np.where(mask)
+            if len(xs) == 0:
+                continue
+
+            # 计算掩码的中心
+            cx, cy = xs.mean(), ys.mean()
+
+            # 用 PCA 找掩码的主轴方向
+            pts = np.column_stack([xs, ys]).astype(np.float32)
+            pts_centered = pts - np.array([cx, cy])
+
+            if len(pts) > 1:
+                cov = np.cov(pts_centered.T)
+                eigenvalues, eigenvectors = np.linalg.eig(cov)
+                main_axis = eigenvectors[:, np.argmax(eigenvalues)]
+                perp_axis = eigenvectors[:, np.argmin(eigenvalues)]
+            else:
+                main_axis = np.array([0, 1])
+                perp_axis = np.array([1, 0])
+
+            # 投影计算
+            proj_main = pts_centered @ main_axis
+            proj_perp = pts_centered @ perp_axis
+
+            # 计算长宽
+            length = np.max(proj_main) - np.min(proj_main)
+            width = np.max(proj_perp) - np.min(proj_perp)
+
+            if width > length:
+                length, width = width, length
+                main_axis, perp_axis = perp_axis, main_axis
+
+            # 角度计算
+            angle = np.degrees(np.arctan2(main_axis[1], main_axis[0]))
+
+            # 转换为相对坐标
+            cx_rel = cx / w
+            cy_rel = cy / h
+            width_rel = width / w
+            height_rel = length / h
+
+            nails_bounds.append({
+                "id": nail["finger_idx"],
+                "cx": cx_rel,
+                "cy": cy_rel,
+                "width": width_rel,
+                "height": height_rel,
+                "angle": angle
+            })
+
+        # 推送方向识别完成消息（不包含图片）
+        if progress_callback:
+            progress_callback("✓ 方向识别完成", None)
+
+        # 步骤 3: 绘制彩色掩码覆盖
+        img_with_masks = img.copy()
+        colors = [
+            (0, 0, 255),      # 红色 (BGR)
+            (0, 165, 255),    # 橙色 (BGR)
+            (0, 255, 255),    # 青色 (BGR)
+            (255, 0, 255),    # 洋红色 (BGR)
+            (0, 255, 0),      # 绿色 (BGR)
+        ]
+
+        for idx, nail in enumerate(nails):
+            mask = nail["mask"]
+            color = colors[idx % len(colors)]
+            mask_count = int(np.sum(mask))
+
+            if mask_count > 0:
+                for i in range(3):
+                    img_with_masks[mask, i] = color[i]
+
+        # 编码最终图片
+        final_img_data = _encode_img_to_base64(img_with_masks)
+        if progress_callback:
+            progress_callback("✓ 预览生成完成", None)
+
+        return {
+            "success": True,
+            "image_data": final_img_data,
+            "nails_bounds": nails_bounds,
+            "message": f"检测到 {len(nails_bounds)} 个指甲"
+        }
+
+    except Exception as e:
+        print(f"[DetectNails] 错误: {e}")
+        return {"success": False, "message": f"检测失败: {str(e)}"}
+
+
+@app.post("/api/detect-nails-preview", tags=["美甲检测"])
+async def detect_nails_preview_endpoint(image: UploadFile = File(...)):
+    """预检测：返回检测结果和进度消息。"""
     try:
         import base64
 
@@ -263,90 +516,83 @@ async def detect_nails_preview_endpoint(image: UploadFile = File(...)):
         img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
         if img is None:
-            return {"success": False, "message": "图片读取失败"}
+            return {"success": False, "message": "图片读取失败", "progress": []}
 
         h, w = img.shape[:2]
+        progress = []
 
-        # 简化策略：多阈值尝试，找最好的结果
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # 使用 YOLO 分割
+        progress.append("✓ 指甲分割完成")
+        nails = nail_seg.segment_nails(img)
+        nails = [n for n in nails if n["finger_idx"] >= 0]
 
-        best_contours = []
-        best_threshold = 200
+        if not nails:
+            return {"success": False, "message": "未检测到指甲", "progress": progress}
 
-        # 尝试不同的亮度阈值
-        for threshold_val in range(200, 250, 10):
-            _, bright_mask = cv2.threshold(gray, threshold_val, 255, cv2.THRESH_BINARY)
-
-            # 反转得到指甲掩码
-            nail_mask = cv2.bitwise_not(bright_mask)
-
-            # 形态学清理
-            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-            nail_mask = cv2.morphologyEx(nail_mask, cv2.MORPH_CLOSE, kernel)
-            nail_mask = cv2.morphologyEx(nail_mask, cv2.MORPH_OPEN, kernel)
-
-            # 找轮廓
-            contours, _ = cv2.findContours(nail_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-            # 筛选轮廓
-            min_area = (h * w) / 1500
-            valid = []
-
-            for c in contours:
-                area = cv2.contourArea(c)
-                if area < min_area:
-                    continue
-
-                x, y, w_rect, h_rect = cv2.boundingRect(c)
-                aspect_ratio = h_rect / w_rect if w_rect > 0 else 0
-
-                # 宽高比范围：0.7 - 5.0
-                if 0.7 < aspect_ratio < 5.0:
-                    valid.append(c)
-
-            print(f"[PreDetect] 阈值 {threshold_val}: 找到 {len(valid)} 个轮廓")
-
-            # 如果找到接近 5 个的，优先选择
-            if len(valid) >= 4 and len(valid) <= 6:
-                best_contours = valid
-                best_threshold = threshold_val
-                break
-            elif len(valid) > len(best_contours):
-                best_contours = valid
-                best_threshold = threshold_val
-
-        # 按 x 坐标排序
-        valid_contours = sorted(best_contours, key=lambda c: cv2.boundingRect(c)[0])
-
-        # 取最多 5 个
-        if len(valid_contours) > 5:
-            valid_contours = sorted(valid_contours, key=lambda c: cv2.contourArea(c), reverse=True)[:5]
-            valid_contours = sorted(valid_contours, key=lambda c: cv2.boundingRect(c)[0])
-
-        print(f"[PreDetect] 用阈值 {best_threshold} 检测到 {len(valid_contours)} 个指甲")
-
-        # 生成指甲框位置（用旋转矩形贴合指甲方向）
+        # 计算指甲边界（方向识别）
+        progress.append("✓ 方向识别完成")
         nails_bounds = []
-        for idx, contour in enumerate(valid_contours):
-            # 计算最小外接旋转矩形
-            rect = cv2.minAreaRect(contour)
-            center, (width, height), angle = rect
+        for nail in nails:
+            mask = nail["mask"]
+            ys, xs = np.where(mask)
+            if len(xs) == 0:
+                continue
 
-            # 转换为相对坐标（0-1）
-            cx, cy = center[0] / w, center[1] / h
-            rw, rh = width / w, height / h
+            cx, cy = xs.mean(), ys.mean()
+            pts = np.column_stack([xs, ys]).astype(np.float32)
+            pts_centered = pts - np.array([cx, cy])
+
+            if len(pts) > 1:
+                cov = np.cov(pts_centered.T)
+                eigenvalues, eigenvectors = np.linalg.eig(cov)
+                main_axis = eigenvectors[:, np.argmax(eigenvalues)]
+                perp_axis = eigenvectors[:, np.argmin(eigenvalues)]
+            else:
+                main_axis = np.array([0, 1])
+                perp_axis = np.array([1, 0])
+
+            proj_main = pts_centered @ main_axis
+            proj_perp = pts_centered @ perp_axis
+
+            length = np.max(proj_main) - np.min(proj_main)
+            width = np.max(proj_perp) - np.min(proj_perp)
+
+            if width > length:
+                length, width = width, length
+                main_axis, perp_axis = perp_axis, main_axis
+
+            angle = np.degrees(np.arctan2(main_axis[1], main_axis[0]))
 
             nails_bounds.append({
-                "id": idx,
-                "cx": cx,
-                "cy": cy,
-                "width": rw,
-                "height": rh,
-                "angle": angle  # 旋转角度（度数）
+                "id": nail["finger_idx"],
+                "cx": cx / w,
+                "cy": cy / h,
+                "width": width / w,
+                "height": length / h,
+                "angle": angle
             })
 
-        # 编码图片为 base64
-        _, buf = cv2.imencode(".jpg", img)
+        # 生成预览图片（带彩色掩码）
+        progress.append("✓ 预览生成完成")
+        img_with_masks = img.copy()
+        colors = [
+            (0, 0, 255),      # 红色
+            (0, 165, 255),    # 橙色
+            (0, 255, 255),    # 青色
+            (255, 0, 255),    # 洋红色
+            (0, 255, 0),      # 绿色
+        ]
+
+        for idx, nail in enumerate(nails):
+            mask = nail["mask"]
+            color = colors[idx % len(colors)]
+            mask_count = int(np.sum(mask))
+
+            if mask_count > 0:
+                for i in range(3):
+                    img_with_masks[mask, i] = color[i]
+
+        _, buf = cv2.imencode(".jpg", img_with_masks)
         img_base64 = base64.b64encode(buf).decode("utf-8")
         img_data_url = f"data:image/jpeg;base64,{img_base64}"
 
@@ -354,14 +600,48 @@ async def detect_nails_preview_endpoint(image: UploadFile = File(...)):
             "success": True,
             "image_data": img_data_url,
             "nails_bounds": nails_bounds,
-            "message": f"检测到 {len(nails_bounds)} 个指甲"
+            "message": f"检测到 {len(nails_bounds)} 个指甲",
+            "progress": progress
         }
 
     except Exception as e:
         print(f"[DetectNailsPreview] Error: {e}")
         import traceback
         traceback.print_exc()
-        return {"success": False, "message": f"检测失败: {str(e)}"}
+        return {"success": False, "message": "检测失败"}
+
+
+@app.post("/api/detect-nails-stream", tags=["美甲检测"])
+async def detect_nails_stream_endpoint(image: UploadFile = File(...)):
+    """实时检测流：使用 SSE 推送进度文字。"""
+
+    async def event_generator():
+        try:
+            contents = await image.read()
+            messages = []
+
+            def progress_callback(msg: str, img_data: Optional[str] = None):
+                messages.append(msg)
+
+            result = await detect_nails_with_progress(contents, progress_callback)
+
+            # 推送所有进度消息
+            for msg in messages:
+                yield f"data: {json.dumps({'message': msg})}\n\n"
+
+            # 推送最终结果
+            yield f"data: {json.dumps({'result': result})}\n\n"
+            yield "data: [DONE]\n\n"
+
+        except Exception as e:
+            print(f"[DetectNailsStream] 错误: {e}")
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    )
 
 
 @app.post("/api/confirm-crop", tags=["美甲检测"])
@@ -903,6 +1183,182 @@ async def get_analytics_endpoint():
 @app.get("/api/analytics/design/{design_id}", tags=["数据分析"])
 async def get_design_analytics_endpoint(design_id: str):
     return get_design_analytics(design_id)
+
+
+@app.get("/api/design-image/{design_id}", tags=["款式库"])
+async def get_design_image(design_id: str):
+    """获取款式详细设计图（去除手部背景的高清图）"""
+    try:
+        design = _find_design(design_id, None)
+
+        # 优先使用detailed_image（详细设计图），回退到image
+        image_field = "detailed_image" if "detailed_image" in design else "image"
+        image_path = design.get(image_field)
+
+        if not image_path:
+            print(f"[GetDesignImage] {design_id} 没有{image_field}")
+            return {"success": False, "message": "款式图不存在"}
+
+        # 如果是相对路径，转换为绝对路径
+        if not os.path.isabs(image_path):
+            image_path = os.path.join(
+                Path(__file__).resolve().parent.parent,
+                image_path
+            )
+
+        print(f"[GetDesignImage] 获取{image_field}: {image_path}")
+
+        if os.path.exists(image_path):
+            return FileResponse(image_path, media_type="image/jpeg")
+        else:
+            print(f"[GetDesignImage] 文件不存在: {image_path}")
+            return {"success": False, "message": f"文件不存在: {image_path}"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[GetDesignImage] 错误: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "message": str(e)}
+
+
+@app.post("/api/enhance-nail-tryon", tags=["AI试戴增强"])
+async def enhance_nail_tryon_endpoint(
+    hand_image: UploadFile = File(...),
+    design_image: UploadFile = File(...),
+    design_name: str = "美甲款式"
+):
+    """使用Qwen-Image-Edit增强美甲试戴效果
+
+    Args:
+        hand_image: 用户手部照片
+        design_image: 美甲款式详细图
+        design_name: 美甲款式名称
+    """
+    try:
+        import tempfile
+
+        # 保存上传的文件到临时文件
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as hand_tmp:
+            hand_contents = await hand_image.read()
+            hand_tmp.write(hand_contents)
+            hand_tmp_path = hand_tmp.name
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as design_tmp:
+            design_contents = await design_image.read()
+            design_tmp.write(design_contents)
+            design_tmp_path = design_tmp.name
+
+        try:
+            # 调用增强器
+            print(f"[TryOnEnhance] 开始增强美甲效果: {design_name}")
+            result = await enhance_nail_tryon(
+                hand_image_path=hand_tmp_path,
+                design_image_path=design_tmp_path,
+                design_name=design_name
+            )
+
+            if result and isinstance(result, dict):
+                # 直接返回后端的响应
+                return result
+            else:
+                return {
+                    "success": False,
+                    "message": "美甲增强失败"
+                }
+        finally:
+            # 清理临时文件
+            import os
+            try:
+                os.unlink(hand_tmp_path)
+                os.unlink(design_tmp_path)
+            except:
+                pass
+
+    except Exception as e:
+        print(f"[TryOnEnhance] 异常: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "message": f"增强失败: {str(e)}"}
+
+
+@app.post("/api/generate-mold-from-inspiration", tags=["灵感试戴"])
+async def generate_mold_endpoint(image: UploadFile = File(...)):
+    """从灵感图生成美甲模具，返回design_id供试戴使用"""
+    try:
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
+            tmp.write(await image.read())
+            tmp_path = tmp.name
+
+        print(f"[InspTryOn] 收到灵感图，开始生成模具...")
+        result = generate_mold_from_inspiration(tmp_path)
+
+        try:
+            os.unlink(tmp_path)
+        except:
+            pass
+
+        if not result:
+            return {"success": False, "message": "模具生成失败，请重试"}
+
+        return {
+            "success": True,
+            "design_id": result["design_id"],
+            "template_base64": result["template_base64"],
+            "design_description": result["design_description"],
+            "nail_count": result["nail_count"],
+            "message": f"模具生成成功，识别到{result['nail_count']}个指甲"
+        }
+
+    except Exception as e:
+        print(f"[InspTryOn] 异常: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "message": str(e)}
+
+
+@app.post("/api/analyze-tryon", tags=["AI分析"])
+async def analyze_tryon_endpoint(
+    image: UploadFile = File(...),
+    design_id: Optional[str] = None,
+    design_image: Optional[str] = None,
+):
+    """独立的AI分析接口，供试戴完成后异步调用"""
+    try:
+        design = _find_design(design_id, design_image)
+
+        contents = await image.read()
+        nparr = np.frombuffer(contents, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        if img is None:
+            return {"success": False, "message": "图片读取失败"}
+
+        # 获取款式图路径
+        design_image_path = None
+        try:
+            if "image" in design and design["image"]:
+                p = design["image"]
+                if not os.path.isabs(p):
+                    p = os.path.join(Path(__file__).resolve().parent.parent, p)
+                if os.path.exists(p):
+                    design_image_path = p
+        except Exception:
+            pass
+
+        print(f"[AnalyzeTryOn] 开始AI分析: {design.get('name', '当前款式')}")
+        analysis = analyze_with_vision(
+            hand_image=img,
+            design_image_path=design_image_path,
+            design_name=design.get("name", "当前款式")
+        )
+        print(f"[AnalyzeTryOn] AI分析完成: 匹配度 {analysis.get('confidence', 0):.0%}")
+        return {"success": True, "analysis": analysis}
+
+    except Exception as e:
+        print(f"[AnalyzeTryOn] 异常: {e}")
+        return {"success": False, "message": str(e)}
 
 
 if __name__ == "__main__":

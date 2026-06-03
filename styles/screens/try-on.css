@@ -86,3 +86,7 @@
 .ra-share{background:var(--orange-light);color:var(--orange)}
 .ra-book{background:var(--orange);color:#fff;flex:1.6}
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

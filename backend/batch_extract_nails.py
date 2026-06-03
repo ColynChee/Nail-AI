@@ -10,7 +10,7 @@ from pathlib import Path
 # 路径配置
 DESIGNS_JSON = "designs.json"
 DETAILED_IMG_DIR = r"d:\指上谈兵\款式图"
-CROPS_DIR = "crops"
+CROPS_DIR = "molds"  
 
 
 def extract_nails_from_preview(preview_img: np.ndarray) -> list:
