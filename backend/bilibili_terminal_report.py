@@ -114,6 +114,8 @@ def _print_formula() -> None:
     print("  backend/bilibili_sources.json stores public Bilibili video IDs.")
     print("  backend/bilibili_stats.py calls Bilibili public endpoint:")
     print("  https://api.bilibili.com/x/web-interface/view?bvid=...")
+    print("  Bilibili public data does not include store review rate or repurchase rate,")
+    print("  so the UI uses verifiable public metrics such as heat and interaction rate.")
     print()
     print("Trend ranking formula used by backend and frontend:")
     print("  heat = views")
@@ -126,6 +128,8 @@ def _print_formula() -> None:
     print()
     print("Operations dashboard high-intent formula:")
     print("  intent = likes + favorites*1.4 + comments*1.8 + shares*2 + danmaku*0.5 + coins*0.7")
+    print("Detail page interaction rate:")
+    print("  interaction_rate = (likes + favorites + comments + shares + danmaku + coins) / views")
     print("=" * 88)
 
 

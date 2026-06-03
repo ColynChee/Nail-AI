@@ -31,6 +31,13 @@ function formatMetric(num) {
   return String(Math.round(n));
 }
 
+function formatDetailPercent(value) {
+  const pct = (Number(value) || 0) * 100;
+  if (!pct) return '0%';
+  if (pct < 1) return '<1%';
+  return `${pct < 10 ? pct.toFixed(1) : Math.round(pct)}%`;
+}
+
 function parseTraffic(value) {
   if (typeof value === 'number') return value;
   const text = String(value || '').toLowerCase();
@@ -101,16 +108,23 @@ function renderDetailTags(tags) {
 function renderDetailStats(design, trendItem, idx) {
   const isRealtime = isRealtimeTrendItem(trendItem);
   const heat = isRealtime ? trendItem.heatScore : parseTraffic(design?.heat || trendItem?.heat || 0);
-  const tryons = Math.max(1200, Math.round((parseTraffic(design?.heat) || 5000) * (0.72 + (idx % 5) * 0.08)));
-  const rate = Math.min(99, 91 + ((idx * 3) % 8));
   const rank = trendItem?.rank || design?.rank || idx;
+  const rawStats = trendItem?.rawStats || {};
+  const views = parseTraffic(rawStats.viewCount);
+  const interactions = parseTraffic(rawStats.likeCount) +
+    parseTraffic(rawStats.collectCount) +
+    parseTraffic(rawStats.commentCount) +
+    parseTraffic(rawStats.shareCount) +
+    parseTraffic(rawStats.danmakuCount) +
+    parseTraffic(rawStats.coinCount);
+  const interactionRate = views ? interactions / views : 0;
 
-  document.getElementById('d-stat-tryons').textContent = isRealtime ? formatMetric(heat) : formatMetric(tryons);
-  document.getElementById('d-stat-tryons-lbl').textContent = isRealtime ? `${trendPlatformName(trendItem)}热度` : '试戴次数';
-  document.getElementById('d-stat-rate').textContent = `${rate}%`;
-  document.getElementById('d-stat-rate-lbl').textContent = idx % 2 ? '复购意愿' : '好评率';
+  document.getElementById('d-stat-tryons').textContent = formatMetric(heat);
+  document.getElementById('d-stat-tryons-lbl').textContent = isRealtime ? `${trendPlatformName(trendItem)}热度` : '本地热度';
+  document.getElementById('d-stat-rate').textContent = isRealtime ? formatDetailPercent(interactionRate) : '待接入';
+  document.getElementById('d-stat-rate-lbl').textContent = isRealtime ? '互动率' : '平台互动';
   document.getElementById('d-stat-rank').textContent = `#${rank}`;
-  document.getElementById('d-stat-rank-lbl').textContent = isRealtime ? '实时排名' : '本周排名';
+  document.getElementById('d-stat-rank-lbl').textContent = isRealtime ? '实时排名' : '本地排名';
 }
 
 function renderDetailColors(design, name) {
