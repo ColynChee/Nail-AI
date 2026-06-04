@@ -242,6 +242,134 @@ function opsRiskFor(item, summary) {
   return { issue: '表达可加强', action: '补充试戴前后对比，提升款式理解速度。', score: 36 };
 }
 
+function opsInferTrendLabels(item) {
+  const labels = new Set(Array.isArray(item.tags) ? item.tags.filter(Boolean) : []);
+  const text = `${item.name || ''} ${item.sub || ''}`.toLowerCase();
+  const rules = [
+    ['裸色', /裸|奶油|燕麦|象牙|nude/],
+    ['法式', /法式|french/],
+    ['猫眼', /猫眼/],
+    ['秋冬', /秋冬|棕|咖|黑|丝绒|琥珀|橄榄/],
+    ['春夏', /春夏|粉|蓝|绿|橘|珊瑚|海岛|樱花/],
+    ['闪耀', /闪|银|镜面|极光|钻|珠/],
+    ['通勤', /通勤|简约|白|日常/],
+    ['甜美', /甜|粉|桃|玫瑰|少女/],
+    ['酷感', /黑|墨|金属|漆/]
+  ];
+  rules.forEach(([label, regex]) => {
+    if (regex.test(text)) labels.add(label);
+  });
+  if (!labels.size) labels.add('百搭');
+  return [...labels].slice(0, 4);
+}
+
+function opsTrendBuckets(items) {
+  const buckets = new Map();
+  items.forEach(item => {
+    const stats = opsStats(item);
+    opsInferTrendLabels(item).forEach(label => {
+      const row = buckets.get(label) || {
+        label,
+        heat: 0,
+        view: 0,
+        intent: 0,
+        engagement: 0,
+        count: 0,
+        examples: []
+      };
+      row.heat += stats.heat;
+      row.view += stats.view;
+      row.intent += stats.intent;
+      row.engagement += stats.engagementRate;
+      row.count += 1;
+      row.examples.push(item);
+      buckets.set(label, row);
+    });
+  });
+  return [...buckets.values()]
+    .map(row => ({
+      ...row,
+      avgEngagement: row.count ? row.engagement / row.count : 0,
+      examples: row.examples.sort((a, b) => opsStats(b).heat - opsStats(a).heat).slice(0, 2)
+    }))
+    .sort((a, b) => b.heat - a.heat);
+}
+
+function opsTrendSignal(bucket, summary) {
+  const heatShare = summary.totals.heat ? bucket.heat / summary.totals.heat : 0;
+  if (heatShare >= 0.32 || bucket.avgEngagement >= 0.08) return '强上升';
+  if (heatShare >= 0.18 || bucket.avgEngagement >= 0.045) return '稳定增长';
+  return '观察中';
+}
+
+function renderOpsTrendInsights(items, summary) {
+  const box = document.getElementById('ops-trend-insights');
+  if (!box) return;
+  if (!items.length) {
+    box.innerHTML = '<div class="ops-empty">暂无趋势数据。请先同步平台热度。</div>';
+    return;
+  }
+  const buckets = opsTrendBuckets(items);
+  const topBuckets = buckets.slice(0, 4);
+  box.innerHTML = topBuckets.map(bucket => {
+    const heatShare = summary.totals.heat ? bucket.heat / summary.totals.heat : 0;
+    const examples = bucket.examples.map(item => item.name).join('、');
+    return `
+      <div class="ops-trend-card">
+        <div class="ops-trend-top">
+          <strong>${opsEscapeHtml(bucket.label)}</strong>
+          <span>${opsTrendSignal(bucket, summary)}</span>
+        </div>
+        <div class="ops-trend-metrics">
+          <div><b>${opsMetric(bucket.heat)}</b><small>聚合热度</small></div>
+          <div><b>${opsPercent(bucket.avgEngagement)}</b><small>平均互动</small></div>
+          <div><b>${Math.round(heatShare * 100)}%</b><small>热度占比</small></div>
+        </div>
+        <p>代表款：${opsEscapeHtml(examples || '暂无')}</p>
+      </div>`;
+  }).join('');
+}
+
+function renderOpsAssistant(items, summary) {
+  const box = document.getElementById('ops-assistant');
+  if (!box) return;
+  if (!items.length) {
+    box.innerHTML = '<div class="ops-empty">AI 助手等待平台数据同步。</div>';
+    return;
+  }
+  const buckets = opsTrendBuckets(items);
+  const topTrend = buckets[0];
+  const topItem = summary.top || items[0];
+  const secondItem = items[1] || topItem;
+  const risk = items
+    .map(item => ({ item, risk: opsRiskFor(item, summary) }))
+    .sort((a, b) => b.risk.score - a.risk.score)[0];
+  const liveText = summary.liveCount
+    ? `已实时监控 ${summary.liveCount}/${summary.styleTotal} 款公开视频热度`
+    : `当前使用本地参考热度，建议补齐公开视频或授权 API`;
+  const trendText = topTrend
+    ? `${topTrend.label}方向热度最高，聚合热度 ${opsMetric(topTrend.heat)}，平均互动率 ${opsPercent(topTrend.avgEngagement)}`
+    : '暂无明显趋势方向';
+  const strategyText = `今日主推「${topItem.name}」，搭配「${secondItem.name}」做同屏推荐，并把主推款接到 AI 试戴默认入口。`;
+  const riskText = risk
+    ? `优先处理「${risk.item.name}」：${risk.risk.action}`
+    : '暂无明显风险款。';
+  box.innerHTML = `
+    <div class="ops-assistant-head">
+      <div>
+        <strong>OpenClaw-ready 运营助手</strong>
+        <span>基于实时热度生成趋势判断与执行策略</span>
+      </div>
+      <div class="ops-assistant-status">AI</div>
+    </div>
+    <div class="ops-assistant-lines">
+      <div class="ops-assistant-line"><b>实时监控</b><span>${opsEscapeHtml(liveText)}</span></div>
+      <div class="ops-assistant-line"><b>趋势分析</b><span>${opsEscapeHtml(trendText)}</span></div>
+      <div class="ops-assistant-line"><b>策略生成</b><span>${opsEscapeHtml(strategyText)}</span></div>
+      <div class="ops-assistant-line"><b>效率提升</b><span>${opsEscapeHtml(riskText)}</span></div>
+    </div>`;
+}
+
 function renderOpsEntrySummary() {
   const entry = document.getElementById('ops-entry-sub');
   if (!entry) return;
@@ -422,10 +550,12 @@ function renderOpsDashboard() {
 
   renderOpsEntrySummary();
   renderOpsKpis(summary);
+  renderOpsTrendInsights(items, summary);
   renderOpsStrategy(summary);
   renderOpsPriorityList(items, summary);
   renderOpsRiskList(items, summary);
   renderOpsPlan(items, summary);
+  renderOpsAssistant(items, summary);
 }
 
 async function refreshOpsDashboard(force = false) {
