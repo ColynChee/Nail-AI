@@ -89,47 +89,8 @@
         <h3>✨ 为你推荐</h3>
         <a onclick="go('s-gallery')">更多</a>
       </div>
-      <div class="style-list">
-        <div class="style-row" onclick="goDetail('🍊','橘子汽水','活力·夏日','¥179','#FFF0EB')">
-          <div class="style-thumb" style="background:#FFF0EB">🍊</div>
-          <div class="style-info">
-            <div class="style-name">橘子汽水</div>
-            <div class="style-tags"><span class="tag tag-orange">活力</span><span class="tag tag-pink">夏日</span></div>
-          </div>
-          <div class="style-right">
-            <div class="style-price">¥179</div>
-            <button class="heart-btn" onclick="event.stopPropagation();toggleHeart(this,'橘子汽水','🍊','¥179','#FFF0EB')">
-              <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            </button>
-          </div>
-        </div>
-        <div class="style-row" onclick="goDetail('🤍','奶白简约','极简·百搭','¥159','#F7F3F0')">
-          <div class="style-thumb" style="background:#F7F3F0">🤍</div>
-          <div class="style-info">
-            <div class="style-name">奶白简约</div>
-            <div class="style-tags"><span class="tag tag-purple">极简</span><span class="tag tag-orange">百搭</span></div>
-          </div>
-          <div class="style-right">
-            <div class="style-price">¥159</div>
-            <button class="heart-btn" onclick="event.stopPropagation();toggleHeart(this,'奶白简约','🤍','¥159','#F7F3F0')">
-              <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            </button>
-          </div>
-        </div>
-        <div class="style-row" onclick="goDetail('🌹','玫瑰绒雾','优雅·约会','¥219','#FFF0F5')">
-          <div class="style-thumb" style="background:#FFF0F5">🌹</div>
-          <div class="style-info">
-            <div class="style-name">玫瑰绒雾</div>
-            <div class="style-tags"><span class="tag tag-pink">优雅</span><span class="tag tag-purple">约会</span></div>
-          </div>
-          <div class="style-right">
-            <div class="style-price">¥219</div>
-            <button class="heart-btn" id="heart-玫瑰绒雾" onclick="event.stopPropagation();toggleHeart(this,'玫瑰绒雾','🌹','¥219','#FFF0F5')">
-              <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            </button>
-          </div>
-        </div>
-      </div>
+      <div class="recommend-note" id="home-recommend-note"></div>
+      <div class="style-list" id="home-recommend-list"></div>
     </div>
   </div>
   <div class="bnav">
@@ -611,6 +572,17 @@
     <div class="pstat"><div class="pstat-num" id="profile-wl-count">0</div><div class="pstat-label">收藏款式</div></div>
     <div class="pstat"><div class="pstat-num" id="profile-booking-count">3</div><div class="pstat-label">已预约</div></div>
   </div>
+  <div class="p-meta">
+    <div class="p-meta-card">
+      <div class="p-meta-label">年龄</div>
+      <div class="p-meta-value" id="profile-age">24</div>
+    </div>
+    <div class="p-meta-card">
+      <div class="p-meta-label">肤色代码</div>
+      <div class="p-meta-value mono" id="profile-skin-code">#F5C6A0</div>
+      <div class="p-meta-sub" id="profile-skin-label">自然色</div>
+    </div>
+  </div>
   <div class="scroll-body">
     <div class="p-menu">
       <div class="menu-item" onclick="go('s-wishlist')">
@@ -687,9 +659,18 @@
       <input id="profile-avatar-input" type="text" maxlength="2" placeholder="例如：小">
     </label>
     <label class="profile-field">
+      <span>年龄</span>
+      <input id="profile-age-input" type="number" min="1" max="120" placeholder="例如：24">
+    </label>
+    <label class="profile-field">
       <span>个人简介</span>
       <input id="profile-bio-input" type="text" maxlength="24" placeholder="例如：美甲爱好者">
     </label>
+    <label class="profile-field">
+      <span>肤色代码</span>
+      <input id="profile-skin-input" type="text" maxlength="7" placeholder="#F5C6A0">
+    </label>
+    <div class="profile-field-hint">建议先打开“肤色匹配”拍照分析，再保存肤色 Code。</div>
     <button class="btn-primary" style="width:100%;margin-top:6px" onclick="saveProfileEditor()">保存资料</button>
   </div>
 </div>
@@ -769,27 +750,49 @@
 <div class="overlay" id="skin-overlay" onclick="closeSkinSheet()">
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="sheet-handle"></div>
-    <div style="font-size:15px;font-weight:700;color:var(--text-dark);margin-bottom:4px">选择你的肤色</div>
-    <div style="font-size:12px;color:var(--text-soft);margin-bottom:16px">设置后推荐款式将优先匹配你的肤色</div>
+    <div class="skin-head">
+      <div>
+        <div class="skin-title">肤色匹配</div>
+        <div class="skin-subtitle">拍照或上传图片，自动提取肤色并保存为颜色代码</div>
+      </div>
+    </div>
+    <div class="skin-actions">
+      <button class="btn-outline skin-action-btn" onclick="openSkinCameraPicker()">拍照分析</button>
+      <button class="btn-outline skin-action-btn" onclick="openSkinUploadPicker()">上传图片</button>
+    </div>
+    <input id="skin-camera-input" type="file" accept="image/*" capture="environment" style="display:none" onchange="handleSkinImageSelection(this,'camera')">
+    <input id="skin-upload-input" type="file" accept="image/*" style="display:none" onchange="handleSkinImageSelection(this,'upload')">
+    <div class="skin-preview card">
+      <div class="skin-preview-frame">
+        <img id="skin-preview-image" alt="肤色预览" style="display:none">
+        <div class="skin-preview-placeholder" id="skin-preview-placeholder">拍照或上传一张自拍/手部照片</div>
+      </div>
+      <div class="skin-preview-meta">
+        <div class="skin-status" id="skin-analysis-status">当前使用默认肤色</div>
+        <div class="skin-code mono" id="skin-analysis-code">#F5C6A0</div>
+        <div class="skin-result-label" id="skin-analysis-label">自然色</div>
+      </div>
+    </div>
     <div class="skin-grid">
-      <div class="skin-item on" onclick="selectSkin(this)">
+      <div class="skin-item" data-code="#FFE0C2" data-label="暖白色" onclick="selectSkin(this)">
         <div class="skin-circle" style="background:#FFE0C2"></div>
         <div class="skin-label">暖白色</div>
       </div>
-      <div class="skin-item" onclick="selectSkin(this)">
+      <div class="skin-item on" data-code="#F5C6A0" data-label="自然色" onclick="selectSkin(this)">
         <div class="skin-circle" style="background:#F5C6A0"></div>
         <div class="skin-label">自然色</div>
       </div>
-      <div class="skin-item" onclick="selectSkin(this)">
+      <div class="skin-item" data-code="#D4956A" data-label="小麦色" onclick="selectSkin(this)">
         <div class="skin-circle" style="background:#D4956A"></div>
         <div class="skin-label">小麦色</div>
       </div>
-      <div class="skin-item" onclick="selectSkin(this)">
+      <div class="skin-item" data-code="#A0724A" data-label="健康棕" onclick="selectSkin(this)">
         <div class="skin-circle" style="background:#A0724A"></div>
         <div class="skin-label">健康棕</div>
       </div>
     </div>
-    <button class="btn-primary" style="width:100%" onclick="closeSkinSheet();showToast('肤色偏好已保存 ✓')">确认保存</button>
+    <div class="skin-tip">保存后会同步到个人资料，并优先影响“为你推荐”。</div>
+    <button class="btn-primary" id="skin-save-btn" style="width:100%" onclick="saveSkinAnalysis()">保存肤色</button>
   </div>
 </div>
 
@@ -809,6 +812,9 @@
 <script src="scripts/design-gen.js"></script>
 <script src="scripts/wishlist.js"></script>
 <script src="scripts/profile.js"></script>
+<script>
+  window.SKIN_ANALYSIS_ENDPOINT = 'http://localhost:8000/api/analyze-skin-tone';
+</script>
 <script src="scripts/skin-sheet.js"></script>
 <script src="scripts/toast.js"></script>
 <script src="scripts/init.js"></script>

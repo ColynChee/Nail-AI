@@ -89,6 +89,13 @@
   font-size:10px;line-height:1.5;color:var(--text-soft);
 }
 
+.recommend-note{
+  margin:-2px 2px 8px;
+  font-size:11px;
+  line-height:1.5;
+  color:var(--text-soft);
+}
+
 /* Style list */
 .style-list{display:flex;flex-direction:column;gap:10px;margin-bottom:4px}
 .style-row{
@@ -100,6 +107,7 @@
 .style-thumb{width:60px;height:60px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}
 .style-info{flex:1;min-width:0}
 .style-name{font-size:13px;font-weight:700;color:var(--text-dark)}
+.style-sub{font-size:10px;line-height:1.35;color:var(--text-soft);margin-top:2px}
 .style-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
 .style-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
 .style-price{font-size:12px;font-weight:700;color:var(--orange)}

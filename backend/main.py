@@ -4,6 +4,9 @@
 - design_id 或 design_image 定位款式
 - color 给定 → 纯色合成模式(可任意换色)；否则 → 模具贴图模式
 """
+import base64
+import os
+
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -13,6 +16,7 @@ import json
 import cv2
 import numpy as np
 from pathlib import Path
+from openai import OpenAI
 
 from hand_detector import get_detector
 from analytics import log_try_on, log_analyze_hand, get_analytics, get_design_analytics
@@ -28,6 +32,211 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+SKIN_PALETTE = [
+    {"code": "#FFE6D1", "label": "暖白色"},
+    {"code": "#F5C6A0", "label": "自然色"},
+    {"code": "#D4956A", "label": "小麦色"},
+    {"code": "#A0724A", "label": "健康棕"},
+]
+
+
+class ProfileUpsertRequest(BaseModel):
+    client_id: str
+    name: Optional[str] = None
+    avatar: Optional[str] = None
+    age: Optional[int] = None
+    bio: Optional[str] = None
+    skin_color_code: Optional[str] = None
+    skin_tone_label: Optional[str] = None
+    skin_tone_source: Optional[str] = None
+    recommended_style_ids: Optional[List[str]] = None
+
+
+def _normalize_hex_color(value: Optional[str]) -> Optional[str]:
+    if not value or not isinstance(value, str):
+        return None
+    text = value.strip().replace('#', '')
+    if len(text) == 3 and all(ch in '0123456789abcdefABCDEF' for ch in text):
+        text = ''.join(ch * 2 for ch in text)
+    if len(text) != 6 or not all(ch in '0123456789abcdefABCDEF' for ch in text):
+        return None
+    return f"#{text.upper()}"
+
+
+def _hex_to_rgb(value: str) -> Optional[tuple[int, int, int]]:
+    normalized = _normalize_hex_color(value)
+    if not normalized:
+        return None
+    raw = normalized[1:]
+    return int(raw[0:2], 16), int(raw[2:4], 16), int(raw[4:6], 16)
+
+
+def _color_distance(left: str, right: str) -> float:
+    rgb_left = _hex_to_rgb(left)
+    rgb_right = _hex_to_rgb(right)
+    if not rgb_left or not rgb_right:
+        return float('inf')
+    return sum((a - b) ** 2 for a, b in zip(rgb_left, rgb_right)) ** 0.5
+
+
+def _snap_skin_code(code: Optional[str], label: Optional[str] = None) -> str:
+    normalized = _normalize_hex_color(code)
+    if label:
+        matched = next((item for item in SKIN_PALETTE if item["label"] == label), None)
+        if matched:
+            return matched["code"]
+    if not normalized:
+        return SKIN_PALETTE[1]["code"]
+    return min(SKIN_PALETTE, key=lambda item: _color_distance(normalized, item["code"]))["code"]
+
+
+def _profile_row_to_payload(row) -> Dict:
+    if row is None:
+        return {}
+    return {
+        "client_id": row["client_id"],
+        "name": row["name"],
+        "avatar": row["avatar"],
+        "age": row["age"],
+        "bio": row["bio"],
+        "skinColorCode": row["skin_color_code"],
+        "skinToneLabel": row["skin_tone_label"],
+        "skinToneSource": row["skin_tone_source"],
+        "recommendedStyleIds": row["recommended_style_ids"] or [],
+    }
+
+
+def _recommendation_ids_from_profile(skin_color_code: Optional[str]) -> List[str]:
+    if not skin_color_code:
+        return []
+    try:
+        skin_hex = _normalize_hex_color(skin_color_code)
+        if not skin_hex:
+            return []
+        # 与前端一致的简单推荐逻辑：根据肤色把当前 3 个最匹配款式保存下来
+        palette_names = {
+            "#FFE6D1": ["裸", "奶", "雾", "粉", "法式", "冰", "透"],
+            "#F5C6A0": ["奶", "咖", "玫瑰", "豆沙", "香槟", "法式", "果冻"],
+            "#D4956A": ["亮", "钻", "银", "金", "果冻", "宝石", "镜面", "闪"],
+            "#A0724A": ["黑", "深", "豹", "星", "亮", "钻", "银", "金"],
+        }
+        matched = min(SKIN_PALETTE, key=lambda item: _color_distance(skin_hex, item["code"]))
+        keywords = palette_names.get(matched["code"], [])
+        scored = []
+        for design in DESIGNS:
+            score = 0
+            text = f"{design.get('name', '')} {' '.join(design.get('tags', []) or [])} {design.get('bg', '')}"
+            for word in keywords:
+                if word and word in text:
+                    score += 5
+            scored.append((score, design.get('id')))
+        scored.sort(key=lambda item: (-item[0], item[1] or ''))
+        return [design_id for score, design_id in scored[:3] if design_id]
+    except Exception:
+        return []
+
+
+async def _fetch_profile_row(client_id: str):
+    pool = getattr(app.state, "db_pool", None)
+    if pool is None:
+        raise HTTPException(status_code=503, detail="数据库连接未就绪")
+    async with pool.acquire() as conn:
+        return await conn.fetchrow(
+            """
+            SELECT client_id, name, avatar, age, bio, skin_color_code, skin_tone_label, skin_tone_source, recommended_style_ids
+            FROM user_profiles
+            WHERE client_id = $1
+            """,
+            client_id,
+        )
+
+
+async def _upsert_profile_row(payload: ProfileUpsertRequest):
+    pool = getattr(app.state, "db_pool", None)
+    if pool is None:
+        raise HTTPException(status_code=503, detail="数据库连接未就绪")
+
+    skin_color_code = _snap_skin_code(payload.skin_color_code, payload.skin_tone_label)
+    recommended_style_ids = payload.recommended_style_ids or _recommendation_ids_from_profile(skin_color_code)
+
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """
+            INSERT INTO user_profiles (
+              client_id, name, avatar, age, bio,
+              skin_color_code, skin_tone_label, skin_tone_source,
+              recommended_style_ids, updated_at
+            ) VALUES (
+              $1, $2, $3, $4, $5,
+              $6, $7, $8,
+              $9::jsonb, now()
+            )
+            ON CONFLICT (client_id) DO UPDATE SET
+              name = EXCLUDED.name,
+              avatar = EXCLUDED.avatar,
+              age = EXCLUDED.age,
+              bio = EXCLUDED.bio,
+              skin_color_code = EXCLUDED.skin_color_code,
+              skin_tone_label = EXCLUDED.skin_tone_label,
+              skin_tone_source = EXCLUDED.skin_tone_source,
+              recommended_style_ids = EXCLUDED.recommended_style_ids,
+              updated_at = now()
+            RETURNING client_id, name, avatar, age, bio, skin_color_code, skin_tone_label, skin_tone_source, recommended_style_ids
+            """,
+            payload.client_id,
+            payload.name,
+            payload.avatar,
+            payload.age,
+            payload.bio,
+            skin_color_code,
+            payload.skin_tone_label,
+            payload.skin_tone_source,
+            json.dumps(recommended_style_ids),
+        )
+    return row
+
+
+def _build_skin_analysis_client() -> Optional[OpenAI]:
+    token = os.getenv("MODELSCOPE_TOKEN", "").strip()
+    if not token:
+        return None
+    return OpenAI(
+        base_url="https://api-inference.modelscope.cn/v1",
+        api_key=token,
+    )
+
+
+def _skin_analysis_model_name() -> str:
+    return os.getenv("SKIN_ANALYSIS_MODEL", "Qwen/Qwen2.5-VL-72B-Instruct").strip() or "Qwen/Qwen2.5-VL-72B-Instruct"
+
+
+def _image_to_data_url(image_bytes: bytes, mime_type: str = "image/jpeg") -> str:
+    encoded = base64.b64encode(image_bytes).decode("utf-8")
+    return f"data:{mime_type};base64,{encoded}"
+
+
+@app.on_event("startup")
+async def _startup_db_pool():
+    try:
+        from db.pool import create_pool
+
+        app.state.db_pool = await create_pool()
+        print("[DB] connection pool created")
+    except Exception as e:
+        print(f"[DB] pool creation failed: {e}")
+
+
+@app.on_event("shutdown")
+async def _shutdown_db_pool():
+    try:
+        pool = getattr(app.state, "db_pool", None)
+        if pool is not None:
+            await pool.close()
+            print("[DB] connection pool closed")
+    except Exception as e:
+        print(f"[DB] pool close failed: {e}")
 
 # 设计文件目录
 DESIGNS_GEN_DIR = Path(__file__).resolve().parent.parent / "designs_generated"
@@ -115,6 +324,130 @@ async def get_design_color(design_id: str):
     return {"design_id": design_id, "color": color}
 
 
+@app.post("/api/analyze-skin-tone", tags=["肤色分析"])
+async def analyze_skin_tone(image: UploadFile = File(...), source: Optional[str] = Form(None)):
+    """使用视觉模型分析肤色，返回可保存的颜色代码。"""
+    contents = await image.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="图片不能为空")
+
+    client = _build_skin_analysis_client()
+    if client is None:
+        raise HTTPException(status_code=503, detail="MODELSCOPE_TOKEN 未配置，无法调用肤色分析模型")
+
+    model_name = _skin_analysis_model_name()
+    data_url = _image_to_data_url(contents, image.content_type or "image/jpeg")
+
+    system_msg = """你是美妆/美甲场景下的肤色分析专家。请根据用户上传的自拍、手部照片或手臂照片，识别最有代表性的肤色。
+
+要求：
+- 只能输出 JSON，不要额外文字
+- code 必须是代表肤色的十六进制颜色代码，格式为 #RRGGBB
+- code 只能从以下 4 个颜色里选一个最接近的：#FFE6D1, #F5C6A0, #D4956A, #A0724A
+- 颜色代码要尽量贴近皮肤本身，不要受背景、阴影、指甲油、饰品、口红影响
+- 如果是自拍，优先参考脸颊或下颌；如果是手部照，优先参考手背或手腕
+- 如果光线偏暗，要根据可见肤色做合理校正，不要输出过黑或过白的极端值
+- label 只能是：暖白色 / 自然色 / 小麦色 / 健康棕
+- undertone 只能是：冷色调 / 暖色调 / 中性色调
+- confidence 为 0 到 1 的小数
+
+输出格式：
+{"code":"#F5C6A0","label":"自然色","undertone":"中性色调","confidence":0.86,"description":"..."}
+"""
+
+    user_msg = f"请分析这张图片的肤色并返回 JSON。来源：{source or 'upload'}"
+
+    try:
+        response = client.chat.completions.create(
+            model=model_name,
+            temperature=0,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": system_msg},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": user_msg},
+                        {"type": "image_url", "image_url": {"url": data_url}},
+                    ],
+                },
+            ],
+        )
+
+        content = response.choices[0].message.content if response.choices else ""
+        if not content:
+            raise HTTPException(status_code=502, detail="肤色分析模型未返回内容")
+
+        try:
+            result = json.loads(content)
+        except json.JSONDecodeError:
+            import re
+            match = re.search(r'\{.*\}', content, re.S)
+            if not match:
+                raise HTTPException(status_code=502, detail="肤色分析模型返回的不是 JSON")
+            result = json.loads(match.group(0))
+        code = str(result.get("code", "")).strip().upper()
+        if not code.startswith("#"):
+            code = f"#{code.lstrip('#')}"
+
+        label = str(result.get("label", "自然色")).strip() or "自然色"
+        undertone = str(result.get("undertone", "中性色调")).strip() or "中性色调"
+        description = str(result.get("description", "")).strip()
+        confidence = result.get("confidence", 0.0)
+        code = _snap_skin_code(code, label)
+        matched = next((item for item in SKIN_PALETTE if item["code"] == code), None)
+        if matched:
+            label = matched["label"]
+
+        return {
+            "success": True,
+            "code": code,
+            "label": label,
+            "undertone": undertone,
+            "confidence": confidence,
+            "description": description,
+            "model_used": model_name,
+            "source": source or "upload",
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[SkinAnalysis] Error: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=f"肤色分析失败: {e}")
+
+
+@app.get("/api/profile", tags=["用户资料"])
+async def get_profile(client_id: str):
+    if not client_id:
+        raise HTTPException(status_code=400, detail="client_id is required")
+
+    try:
+        row = await _fetch_profile_row(client_id)
+        if row is None:
+            return {"success": True, "profile": {"client_id": client_id}}
+        return {"success": True, "profile": _profile_row_to_payload(row)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Profile] fetch failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/profile", tags=["用户资料"])
+async def upsert_profile(payload: ProfileUpsertRequest):
+    if not payload.client_id:
+        raise HTTPException(status_code=400, detail="client_id is required")
+
+    try:
+        row = await _upsert_profile_row(payload)
+        return {"success": True, "profile": _profile_row_to_payload(row)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Profile] upsert failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/api/detect-hands", tags=["手部检测"])
 async def detect_hands(image: UploadFile = File(...)):
     try:
@@ -166,8 +499,24 @@ async def try_on(
 
         result = nail_tryon_v2.try_on(img, did, color=color,
                                       shape_type=shape, length_ratio=length, width_ratio=width)
+
+        # Analytics logging (existing)
         if not result["success"]:
             log_try_on(did, design.get("name", ""), None, False)
+            # DB logging: try_on_logs
+            pool = getattr(app.state, "db_pool", None)
+            if pool is not None:
+                try:
+                    async with pool.acquire() as conn:
+                        await conn.execute(
+                            "INSERT INTO try_on_logs (design_id, success, message) VALUES ($1, $2, $3)",
+                            did,
+                            False,
+                            result.get("error", "试戴失败"),
+                        )
+                except Exception as e:
+                    print(f"[DB] failed to insert try_on_logs (failure): {e}")
+
             return {"success": False, "message": result.get("error", "试戴失败"), "design": design}
 
         b64 = cv2.imencode(".jpg", result["image"], [cv2.IMWRITE_JPEG_QUALITY, 88])[1]
@@ -175,6 +524,21 @@ async def try_on(
         image_base64 = base64.b64encode(b64).decode("utf-8")
 
         log_try_on(did, design.get("name", ""), None, True)
+
+        # DB logging: success
+        pool = getattr(app.state, "db_pool", None)
+        if pool is not None:
+            try:
+                async with pool.acquire() as conn:
+                    await conn.execute(
+                        "INSERT INTO try_on_logs (design_id, success, message) VALUES ($1, $2, $3)",
+                        did,
+                        True,
+                        "试戴成功",
+                    )
+            except Exception as e:
+                print(f"[DB] failed to insert try_on_logs (success): {e}")
+
         return {
             "success": True,
             "message": "试戴成功",
@@ -211,8 +575,29 @@ async def generate_nail_design_endpoint(prompt: str):
         if result["success"]:
             return result
         else:
-            raise HTTPException(status_code=500, detail=result.get("error", "设计预览失败"))
+            error_message = result.get("error", "设计预览失败")
+            status_code = 503 if "MODELSCOPE_TOKEN" in error_message else 500
+            raise HTTPException(status_code=status_code, detail=error_message)
+    except HTTPException:
+        raise
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/try-on-logs", tags=["后端日志"])
+async def get_try_on_logs(limit: int = 50):
+    """返回最近的 try_on 日志，按时间倒序。"""
+    pool = getattr(app.state, "db_pool", None)
+    if pool is None:
+        raise HTTPException(status_code=503, detail="数据库连接未就绪")
+
+    try:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch("SELECT id, design_id, success, message, created_at FROM try_on_logs ORDER BY created_at DESC LIMIT $1", limit)
+            results = [dict(r) for r in rows]
+        return {"success": True, "logs": results}
+    except Exception as e:
+        print(f"[DB] failed to fetch try_on_logs: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

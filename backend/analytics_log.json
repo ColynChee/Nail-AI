@@ -2112,5 +2112,45 @@
     "design_name": "白底波点",
     "skin_tone": null,
     "success": true
+  },
+  {
+    "timestamp": "2026-06-03T16:55:32.551231",
+    "type": "try_on",
+    "design_id": "design_001",
+    "design_name": "裸色奶油",
+    "skin_tone": null,
+    "success": false
+  },
+  {
+    "timestamp": "2026-06-03T17:02:11.613276",
+    "type": "try_on",
+    "design_id": "gen_1780477268_2cca4a47",
+    "design_name": "AI 生成款式",
+    "skin_tone": null,
+    "success": true
+  },
+  {
+    "timestamp": "2026-06-04T01:36:27.090248",
+    "type": "try_on",
+    "design_id": "design_010",
+    "design_name": "象牙白",
+    "skin_tone": null,
+    "success": false
+  },
+  {
+    "timestamp": "2026-06-04T01:36:56.726155",
+    "type": "try_on",
+    "design_id": "design_006",
+    "design_name": "蜜桃珊瑚",
+    "skin_tone": null,
+    "success": false
+  },
+  {
+    "timestamp": "2026-06-04T14:17:16.863857",
+    "type": "try_on",
+    "design_id": "design_013",
+    "design_name": "粉雾少女",
+    "skin_tone": null,
+    "success": false
   }
 ]

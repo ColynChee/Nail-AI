@@ -11,6 +11,7 @@ import requests
 import numpy as np
 from pathlib import Path
 from typing import Dict, Optional
+from dotenv import load_dotenv
 from openai import OpenAI
 
 BACKEND = Path(__file__).resolve().parent
@@ -20,23 +21,32 @@ DESIGNS_GEN_DIR.mkdir(exist_ok=True)
 # 指甲模具路径
 NAIL_TEMPLATE_PATH = BACKEND.parent / "生成指甲模板图片.png"
 
-# API 配置
-MODELSCOPE_TOKEN = os.getenv("MODELSCOPE_TOKEN", "")
-if not MODELSCOPE_TOKEN:
-    raise ValueError("请设置环境变量 MODELSCOPE_TOKEN")
+load_dotenv(BACKEND / ".env")
+load_dotenv(BACKEND.parent / ".env")
 
-# OpenAI 兼容客户端（调用 DeepSeek）
-deepseek_client = OpenAI(
-    base_url='https://api-inference.modelscope.cn/v1',
-    api_key=MODELSCOPE_TOKEN,
-)
-
-# ModelScope 通用 API
 MODELSCOPE_BASE_URL = "https://api-inference.modelscope.cn/"
-COMMON_HEADERS = {
-    "Authorization": MODELSCOPE_TOKEN,
-    "Content-Type": "application/json",
-}
+
+
+def _get_modelscope_token() -> str:
+    return os.getenv("MODELSCOPE_TOKEN", "")
+
+
+def _build_deepseek_client() -> Optional[OpenAI]:
+    token = _get_modelscope_token()
+    if not token:
+        return None
+    return OpenAI(
+        base_url='https://api-inference.modelscope.cn/v1',
+        api_key=token,
+    )
+
+
+def _build_common_headers() -> Dict[str, str]:
+    token = _get_modelscope_token()
+    return {
+        "Authorization": token,
+        "Content-Type": "application/json",
+    }
 
 
 def _fallback_prompt(user_prompt: str) -> str:
@@ -87,6 +97,12 @@ def optimize_prompt(user_prompt: str) -> Dict:
 直接返回优化后的中文描述（一段话，不需要JSON）"""
 
     try:
+        deepseek_client = _build_deepseek_client()
+        if deepseek_client is None:
+            print("[DeepSeek] MODELSCOPE_TOKEN missing, using fallback template")
+            fallback = _fallback_prompt(user_prompt)
+            return {"optimized": fallback, "fallback": True}
+
         print(f"[DeepSeek] Calling API with model: deepseek-ai/DeepSeek-V4-Pro")
         response = deepseek_client.chat.completions.create(
             model='deepseek-ai/DeepSeek-V4-Pro',
@@ -148,10 +164,14 @@ def generate_image(prompt: str, max_wait: int = 300) -> Optional[np.ndarray]:
     Returns:
         生成的图片 numpy 数组 (BGR)，或 None 如果失败
     """
+    token = _get_modelscope_token()
+    if not token:
+        raise RuntimeError("请设置环境变量 MODELSCOPE_TOKEN 后再使用美甲设计生成功能")
+
     # 1) 提交任务
     submit_response = requests.post(
         f"{MODELSCOPE_BASE_URL}v1/images/generations",
-        headers={**COMMON_HEADERS, "X-ModelScope-Async-Mode": "true"},
+        headers={**_build_common_headers(), "X-ModelScope-Async-Mode": "true"},
         json={
             "model": "Qwen/Qwen-Image-2512",
             "prompt": prompt,
@@ -169,7 +189,7 @@ def generate_image(prompt: str, max_wait: int = 300) -> Optional[np.ndarray]:
     while time.time() - start_time < max_wait:
         result = requests.get(
             f"{MODELSCOPE_BASE_URL}v1/tasks/{task_id}",
-            headers={**COMMON_HEADERS, "X-ModelScope-Task-Type": "image_generation"},
+            headers={**_build_common_headers(), "X-ModelScope-Task-Type": "image_generation"},
         )
         result.raise_for_status()
         data = result.json()
@@ -454,6 +474,14 @@ def generate_design_preview(user_prompt: str, design_id: Optional[str] = None) -
     print(f"[Design] User prompt: {user_prompt}")
 
     try:
+        token = _get_modelscope_token()
+        if not token:
+            return {
+                "success": False,
+                "design_id": design_id,
+                "error": "MODELSCOPE_TOKEN 未配置，无法调用美甲设计生成接口",
+            }
+
         # 1) 优化提示词
         optimized = optimize_prompt(user_prompt)
         optimized_text = optimized.get('optimized', user_prompt)
