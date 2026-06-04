@@ -2,6 +2,10 @@
    INTELLIGENT OPERATIONS DASHBOARD
 ══════════════════════════════════ */
 let opsLastItems = [];
+let opsAssistantSignature = '';
+let opsAssistantRequestId = 0;
+let opsTrendChart = null;
+const OPS_API_BASE = 'http://localhost:8000';
 
 function opsNumber(value) {
   if (typeof toTrafficNumber === 'function') return toTrafficNumber(value);
@@ -302,6 +306,237 @@ function opsTrendSignal(bucket, summary) {
   return '观察中';
 }
 
+function renderOpsTrendChart(items) {
+  const canvas = document.getElementById('ops-trend-chart');
+  const empty = document.getElementById('ops-chart-empty');
+  const card = canvas?.closest('.ops-chart-card');
+  if (!canvas || !card) return;
+
+  const rows = items
+    .slice(0, 8)
+    .map(item => ({ item, stats: opsStats(item) }))
+    .filter(row => row.item?.name);
+
+  if (!rows.length || typeof Chart === 'undefined') {
+    card.classList.add('is-empty');
+    if (empty) {
+      empty.textContent = typeof Chart === 'undefined'
+        ? '图表库未加载，请检查网络或稍后刷新。'
+        : '暂无可视化数据，请先同步平台热度。';
+    }
+    return;
+  }
+
+  card.classList.remove('is-empty');
+  const labels = rows.map(row => row.item.name.length > 5 ? `${row.item.name.slice(0, 5)}...` : row.item.name);
+  const heatData = rows.map(row => Math.round(row.stats.heat));
+  const engagementData = rows.map(row => Number((row.stats.engagementRate * 100).toFixed(1)));
+  const maxHeat = Math.max(...heatData, 1);
+  const ctx = canvas.getContext('2d');
+
+  const chartData = {
+    labels,
+    datasets: [
+      {
+        type: 'bar',
+        label: '综合热度',
+        data: heatData,
+        yAxisID: 'y',
+        borderRadius: 8,
+        borderSkipped: false,
+        backgroundColor: heatData.map((value, index) => {
+          const alpha = 0.28 + (value / maxHeat) * 0.42;
+          return index === 0 ? `rgba(247, 111, 70, ${alpha + 0.18})` : `rgba(45, 212, 191, ${alpha})`;
+        }),
+        maxBarThickness: 22
+      },
+      {
+        type: 'line',
+        label: '互动率',
+        data: engagementData,
+        yAxisID: 'y1',
+        borderColor: '#F76F46',
+        backgroundColor: 'rgba(247,111,70,.14)',
+        borderWidth: 2,
+        tension: 0.35,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        pointBackgroundColor: '#FFFFFF',
+        pointBorderColor: '#F76F46',
+        pointBorderWidth: 2
+      }
+    ]
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        position: 'top',
+        align: 'start',
+        labels: {
+          boxWidth: 9,
+          boxHeight: 9,
+          usePointStyle: true,
+          color: '#7D6257',
+          font: { size: 10, weight: '700' }
+        }
+      },
+      tooltip: {
+        backgroundColor: '#2C1810',
+        titleFont: { size: 11, weight: '800' },
+        bodyFont: { size: 11 },
+        padding: 10,
+        callbacks: {
+          label(context) {
+            if (context.dataset.yAxisID === 'y1') return `互动率 ${context.parsed.y}%`;
+            return `综合热度 ${opsMetric(context.parsed.y)}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: { color: '#9B7B70', font: { size: 9, weight: '700' }, maxRotation: 0, autoSkip: false }
+      },
+      y: {
+        beginAtZero: true,
+        grid: { color: 'rgba(125,98,87,.12)' },
+        ticks: { color: '#9B7B70', font: { size: 9 }, callback: value => opsMetric(value) }
+      },
+      y1: {
+        position: 'right',
+        beginAtZero: true,
+        suggestedMax: Math.max(8, Math.ceil(Math.max(...engagementData, 0) * 1.35)),
+        grid: { drawOnChartArea: false },
+        ticks: { color: '#F76F46', font: { size: 9 }, callback: value => `${value}%` }
+      }
+    }
+  };
+
+  if (opsTrendChart) {
+    opsTrendChart.data = chartData;
+    opsTrendChart.options = chartOptions;
+    opsTrendChart.update();
+    return;
+  }
+
+  opsTrendChart = new Chart(ctx, {
+    data: chartData,
+    options: chartOptions
+  });
+}
+
+function opsAssistantPayload(items, summary) {
+  return {
+    items: items.slice(0, 12).map(item => {
+      const stats = opsStats(item);
+      return {
+        id: item.id,
+        rank: item.rank,
+        name: item.name,
+        tags: item.tags || [],
+        platformName: opsPlatformName(item),
+        trendSource: item.trendSource,
+        heatScore: stats.heat,
+        stats: {
+          view: stats.view,
+          like: stats.like,
+          collect: stats.collect,
+          comment: stats.comment,
+          share: stats.share,
+          danmaku: stats.danmaku,
+          coin: stats.coin,
+          engagementRate: stats.engagementRate,
+          collectRate: stats.collectRate
+        }
+      };
+    }),
+    summary: {
+      styleTotal: summary.styleTotal,
+      liveCount: summary.liveCount,
+      fallbackCount: summary.fallbackCount,
+      score: summary.score,
+      top: summary.top ? {
+        id: summary.top.id,
+        name: summary.top.name,
+        rank: summary.top.rank,
+        platformName: opsPlatformName(summary.top)
+      } : null,
+      totals: summary.totals,
+      averageView: summary.averageView,
+      averageHeat: summary.averageHeat
+    },
+    trendBuckets: opsTrendBuckets(items).slice(0, 6).map(bucket => ({
+      label: bucket.label,
+      heat: bucket.heat,
+      view: bucket.view,
+      intent: bucket.intent,
+      count: bucket.count,
+      avgEngagement: bucket.avgEngagement,
+      examples: bucket.examples.map(item => item.name)
+    }))
+  };
+}
+
+function renderOpsAssistantResult(result) {
+  const box = document.getElementById('ops-assistant');
+  if (!box || !result) return;
+  const lines = Array.isArray(result.lines) ? result.lines.slice(0, 4) : [];
+  if (!lines.length) return;
+  const subtitle = result.source === 'modelscope'
+    ? `ModelScope · ${result.model || 'Qwen'}`
+    : '本地策略兜底 · 等待 ModelScope 返回';
+  box.innerHTML = `
+    <div class="ops-assistant-head">
+      <div>
+        <strong>${opsEscapeHtml(result.headline || 'ModelScope 智能运营助手')}</strong>
+        <span>${opsEscapeHtml(subtitle)}</span>
+      </div>
+      <div class="ops-assistant-status">${opsEscapeHtml(result.status || (result.source === 'modelscope' ? 'AI' : 'LOCAL'))}</div>
+    </div>
+    <div class="ops-assistant-lines">
+      ${lines.map(line => `
+        <div class="ops-assistant-line">
+          <b>${opsEscapeHtml(line.label)}</b>
+          <span>${opsEscapeHtml(line.text)}</span>
+        </div>`).join('')}
+    </div>`;
+}
+
+async function refreshOpsAssistantModel(items, summary, force = false) {
+  const payload = opsAssistantPayload(items, summary);
+  const signature = JSON.stringify({
+    ids: payload.items.map(item => `${item.id}:${item.rank}:${Math.round(item.heatScore || 0)}`),
+    liveCount: payload.summary.liveCount,
+    fallbackCount: payload.summary.fallbackCount
+  });
+  if (!force && signature === opsAssistantSignature) return;
+  opsAssistantSignature = signature;
+  const requestId = ++opsAssistantRequestId;
+
+  try {
+    const response = await fetch(`${OPS_API_BASE}/api/ops/assistant`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const result = await response.json();
+    if (requestId !== opsAssistantRequestId) return;
+    renderOpsAssistantResult(result);
+  } catch (error) {
+    const box = document.getElementById('ops-assistant');
+    if (box) {
+      const status = box.querySelector('.ops-assistant-head span');
+      if (status) status.textContent = `ModelScope 暂未连接 · ${error.message}`;
+    }
+  }
+}
+
 function renderOpsTrendInsights(items, summary) {
   const box = document.getElementById('ops-trend-insights');
   if (!box) return;
@@ -368,6 +603,7 @@ function renderOpsAssistant(items, summary) {
       <div class="ops-assistant-line"><b>策略生成</b><span>${opsEscapeHtml(strategyText)}</span></div>
       <div class="ops-assistant-line"><b>效率提升</b><span>${opsEscapeHtml(riskText)}</span></div>
     </div>`;
+  refreshOpsAssistantModel(items, summary);
 }
 
 function renderOpsEntrySummary() {
@@ -550,6 +786,7 @@ function renderOpsDashboard() {
 
   renderOpsEntrySummary();
   renderOpsKpis(summary);
+  renderOpsTrendChart(items);
   renderOpsTrendInsights(items, summary);
   renderOpsStrategy(summary);
   renderOpsPriorityList(items, summary);
@@ -564,10 +801,12 @@ async function refreshOpsDashboard(force = false) {
     if (updated) updated.textContent = '正在刷新平台热度...';
     await refreshXhsTrending();
     renderOpsDashboard();
+    refreshOpsAssistantModel(opsLastItems, opsSummary(opsLastItems), true);
     if (typeof showToast === 'function') showToast('运营数据已刷新');
     return;
   }
   renderOpsDashboard();
+  if (force) refreshOpsAssistantModel(opsLastItems, opsSummary(opsLastItems), true);
 }
 
 function openOpsStyle(key) {

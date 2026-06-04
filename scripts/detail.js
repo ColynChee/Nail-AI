@@ -1,19 +1,6 @@
 /* ══════════════════════════════════
    DETAIL
 ══════════════════════════════════ */
-const DETAIL_PALETTES = {
-  red: ['#B71C1C', '#D84343', '#F7A1A1', '#F6D6D6', '#7A1F1F'],
-  pink: ['#FFB3C6', '#F7A8B8', '#E8A0BF', '#FFE0EA', '#C85A7A'],
-  green: ['#506B3F', '#7E9B5D', '#BFD7A2', '#F0E8CC', '#2F3F2F'],
-  blue: ['#4A6FA5', '#7DA3D8', '#D9E8FF', '#F5F0FF', '#243B63'],
-  purple: ['#8E6FB0', '#B9A0D8', '#E5D8F5', '#F7E6F0', '#4F3A68'],
-  black: ['#151515', '#36302C', '#B08A54', '#F3E3C3', '#7C6A57'],
-  brown: ['#6B4F3A', '#A87955', '#D6B28E', '#EFE1CF', '#3B2A20'],
-  white: ['#F8F3EC', '#FFFFFF', '#E6E1DA', '#C8BFB3', '#F6D8CC'],
-  silver: ['#D8DCE2', '#F6F7F8', '#AEB7C2', '#7D8791', '#ECE4FF'],
-  default: ['#FFB3C6', '#FFCBA4', '#C9B8E8', '#FFEAA7', '#B2F0E8']
-};
-
 function detailHash(text) {
   return Array.from(String(text || '')).reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
 }
@@ -75,20 +62,6 @@ function trendPlatformName(item) {
   return item?.platformName || (item?.trendSource === 'bilibili-public' ? 'B站' : '平台');
 }
 
-function inferPaletteKey(name, tags) {
-  const text = `${name || ''} ${(tags || []).join(' ')}`;
-  if (/红|莓|玫瑰|丝绒/.test(text)) return 'red';
-  if (/粉|樱|桃|少女|珊瑚/.test(text)) return 'pink';
-  if (/绿|橄榄|薄荷/.test(text)) return 'green';
-  if (/蓝|海岛/.test(text)) return 'blue';
-  if (/紫|晚霞|葡萄/.test(text)) return 'purple';
-  if (/黑|金|墨/.test(text)) return 'black';
-  if (/棕|咖啡|焦糖|琥珀|巧克力/.test(text)) return 'brown';
-  if (/白|奶油|裸色|象牙|燕麦/.test(text)) return 'white';
-  if (/银|镜面|极光|闪片/.test(text)) return 'silver';
-  return 'default';
-}
-
 function buildDetailTags(design, trendItem, sub) {
   const tags = [];
   if (isRealtimeTrendItem(trendItem)) tags.push(`${trendPlatformName(trendItem)}实时视频`);
@@ -125,16 +98,6 @@ function renderDetailStats(design, trendItem, idx) {
   document.getElementById('d-stat-rate-lbl').textContent = isRealtime ? '互动率' : '平台互动';
   document.getElementById('d-stat-rank').textContent = `#${rank}`;
   document.getElementById('d-stat-rank-lbl').textContent = isRealtime ? '实时排名' : '本地排名';
-}
-
-function renderDetailColors(design, name) {
-  const tags = design?.tags || [];
-  const palette = DETAIL_PALETTES[inferPaletteKey(name, tags)] || DETAIL_PALETTES.default;
-  const row = document.getElementById('d-color-row');
-  if (!row) return;
-  row.innerHTML = palette.map((color, i) =>
-    `<div class="c-dot ${i === 0 ? 'on' : ''}" style="background:${color}" onclick="pickColor(this)" title="${color}"></div>`
-  ).join('');
 }
 
 function buildDetailDescription(design, name, trendItem, idx) {
@@ -218,7 +181,6 @@ function goDetail(emoji, name, sub, price, bg, image, designId = null) {
   const tags = buildDetailTags(design, trendItem, sub);
   renderDetailTags(tags);
   renderDetailStats(design, trendItem, idx);
-  renderDetailColors(design, name);
   renderRelatedPosts(design, trendItem);
   document.getElementById('d-desc').innerHTML = buildDetailDescription(design, design?.name || name, trendItem, idx);
 
@@ -251,7 +213,3 @@ function toggleDetailFav() {
   }
 }
 
-function pickColor(dot) {
-  document.querySelectorAll('.c-dot').forEach(d => d.classList.remove('on'));
-  dot.classList.add('on');
-}
