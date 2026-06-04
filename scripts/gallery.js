@@ -5,13 +5,58 @@ function updateGalleryHeatNote(filter) {
   const note = document.getElementById('gallery-note');
   if (!note) return;
   const state = typeof getLiveTrendingState === 'function' ? getLiveTrendingState() : {};
-  const updatedAt = state.updatedAt || (typeof XHS_KEYWORD_HEAT_UPDATED_AT !== 'undefined' ? XHS_KEYWORD_HEAT_UPDATED_AT : '手动更新');
-  const sourceName = state.source === 'bilibili-live' ? 'B站' : '平台';
-  if (filter === '热门') {
+  const updatedAt = state.updatedAt || '本地款式库';
+  if (filter === '热门' && state.status === 'ready') {
+    const sourceName = state.source === 'bilibili-live' ? 'B站' : '平台';
     note.textContent = `热门榜按${sourceName}热度排序 · 更新于 ${updatedAt}`;
     return;
   }
-  note.textContent = `${filter}款式按${sourceName}关键词热度排序 · 更新于 ${updatedAt}`;
+  const label = filter === '全部' ? '全部款式' : `${filter}款式`;
+  if (state.status === 'ready') {
+    const sourceName = state.source === 'bilibili-live' ? 'B站实时热度' : '平台实时热度';
+    note.textContent = `${label}优先按${sourceName}排序 · 更新于 ${updatedAt}`;
+    return;
+  }
+  note.textContent = `${label}按款式库热度排序 · 更新于 ${updatedAt}`;
+}
+
+function galleryHeatNumber(value) {
+  if (typeof toTrafficNumber === 'function') return toTrafficNumber(value);
+  const text = String(value || '').trim().toLowerCase();
+  const num = Number.parseFloat(text.replace(/[^\d.]/g, ''));
+  if (!Number.isFinite(num)) return 0;
+  if (text.includes('w') || text.includes('万')) return num * 10000;
+  if (text.includes('k')) return num * 1000;
+  return num;
+}
+
+function galleryItemsByFilter(filter) {
+  const base = filter === '全部' ? STYLES : STYLES.filter(s => Array.isArray(s.tags) && s.tags.includes(filter));
+  const liveItems = typeof getLiveTrendingItems === 'function' ? getLiveTrendingItems() : [];
+  const liveById = new Map(liveItems.filter(item => item.id).map(item => [item.id, item]));
+  const liveByName = new Map(liveItems.filter(item => item.name).map(item => [item.name, item]));
+  return base
+    .map(style => {
+      const live = liveById.get(style.id) || liveByName.get(style.name);
+      if (!live) return { ...style, heatScore: galleryHeatNumber(style.heat), heatSource: 'local' };
+      const liveHeat = live.heat || (typeof formatXhsHeat === 'function' ? formatXhsHeat(live.heatScore) : style.heat);
+      return {
+        ...style,
+        ...live,
+        id: style.id,
+        name: style.name,
+        price: style.price,
+        tags: style.tags,
+        bg: style.bg,
+        image: style.image,
+        detailed_image: style.detailed_image,
+        heat: liveHeat,
+        heatScore: galleryHeatNumber(live.heatScore || liveHeat || style.heat),
+        heatSource: live.trendSource || 'live'
+      };
+    })
+    .sort((a, b) => galleryHeatNumber(b.heatScore || b.heat) - galleryHeatNumber(a.heatScore || a.heat))
+    .map((item, index) => ({ ...item, rank: index + 1 }));
 }
 
 function renderGallery(filter) {
@@ -45,9 +90,7 @@ function renderGallery(filter) {
       </div>`).join('');
     return;
   }
-  const items = typeof buildKeywordHeatGalleryItems === 'function'
-    ? buildKeywordHeatGalleryItems(filter)
-    : (filter === '全部' ? STYLES : STYLES.filter(s => s.tags.includes(filter)));
+  const items = galleryItemsByFilter(filter);
   grid.innerHTML = items.map((s,i) => `
     <div class="g-card card-press" onclick="goDetail('${s.emoji}','${s.name}','${s.sub || `${s.tags[0]}·${s.tags[1]||s.tags[0]}`}','${s.price}','${s.bg}','${s.image || ''}','${s.id || ''}')">
       <div class="g-thumb" style="background:${s.bg}">

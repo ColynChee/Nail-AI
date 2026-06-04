@@ -19,6 +19,11 @@ from typing import List, Dict, Optional
 import numpy as np
 import cv2
 
+os.environ.setdefault(
+    "YOLO_CONFIG_DIR",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), ".ultralytics"),
+)
+
 _MODEL = None
 _MODEL_FIST = None
 _MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", "nails_seg_yolov8.pt")

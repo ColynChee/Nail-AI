@@ -35,10 +35,6 @@
 .stat-num{font-size:17px;font-weight:800;color:var(--text-dark);font-family:'Nunito',sans-serif}
 .stat-lbl{font-size:10px;color:var(--text-soft);margin-top:2px}
 
-.color-row{display:flex;gap:8px;margin-bottom:14px;align-items:center}
-.c-dot{width:30px;height:30px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;transition:transform .15s}
-.c-dot.on{border-color:var(--orange);transform:scale(1.18)}
-
 .related-posts{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
 .related-post-card{
   display:flex;align-items:center;gap:10px;

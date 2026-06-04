@@ -200,6 +200,29 @@
       <section class="ops-section">
         <div class="ops-section-head">
           <div>
+            <h3>运营数据图表</h3>
+            <p>用热度柱状图和互动率折线图观察款式表现变化。</p>
+          </div>
+        </div>
+        <div class="ops-chart-card">
+          <canvas id="ops-trend-chart"></canvas>
+          <div class="ops-chart-empty" id="ops-chart-empty">正在加载运营图表...</div>
+        </div>
+      </section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <h3>流行趋势洞察</h3>
+            <p>从平台热度、互动率和收藏意向中提炼正在上升的风格方向。</p>
+          </div>
+        </div>
+        <div class="ops-trends" id="ops-trend-insights"></div>
+      </section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
             <h3>今日主推策略</h3>
             <p>把热门款、试戴入口和内容投放连成一条转化链路。</p>
           </div>
@@ -236,6 +259,16 @@
           </div>
         </div>
         <div class="ops-plan" id="ops-plan"></div>
+      </section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <h3>AI 运营助手</h3>
+            <p>接入 ModelScope 的运营分析输出，后续可交给 OpenClaw 编排更多执行工具。</p>
+          </div>
+        </div>
+        <div class="ops-assistant" id="ops-assistant"></div>
       </section>
     </div>
   </div>
@@ -511,9 +544,6 @@
         <div class="stat-box"><div class="stat-num" id="d-stat-rate">--</div><div class="stat-lbl" id="d-stat-rate-lbl">互动率</div></div>
         <div class="stat-box"><div class="stat-num" id="d-stat-rank">#1</div><div class="stat-lbl" id="d-stat-rank-lbl">本周排名</div></div>
       </div>
-      <div class="div"></div>
-      <div class="detail-section-title" style="font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:10px">选择颜色</div>
-      <div class="color-row" id="d-color-row"></div>
       <div class="div"></div>
       <div class="detail-section-title" style="font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:10px">平台相关视频</div>
       <div class="related-posts" id="d-related-posts"></div>
@@ -999,6 +1029,7 @@
 <script src="scripts/xhs-config.js"></script>
 <script src="scripts/xhs-keyword-heat.js"></script>
 <script src="scripts/trending.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="scripts/ops.js"></script>
 <script src="scripts/gallery.js"></script>
 <script src="scripts/detail.js?v=interaction-rate-20260603"></script>
@@ -1012,3 +1043,4 @@
 <script src="scripts/init.js"></script>
 </body>
 </html>
+
