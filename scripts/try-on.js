@@ -296,6 +296,13 @@ function showTryonResult(imageBase64, analysisData, nApplied) {
   renderNailShapePanel();
   renderNailRotationPanel();
   resultEl.classList.add('show');
+  if (typeof addTryonHistory === 'function') {
+    addTryonHistory({
+      source: 'AI试戴',
+      resultImage: imageBase64 ? `data:image/jpeg;base64,${imageBase64}` : '',
+      matchScore: document.getElementById('tryon-match-score')?.textContent || '—'
+    });
+  }
 }
 
 // ── 甲形控制面板 ──────────────────────
@@ -978,6 +985,9 @@ function showFallbackResult(msg) {
     msg + '。实际上线后将显示真实 AI 分析结果。';
 
   document.getElementById('tryon-result').classList.add('show');
+  if (typeof addTryonHistory === 'function') {
+    addTryonHistory({ source: '模拟试戴', matchScore: '—' });
+  }
 }
 
 // ── 增强试戴效果 ────────────────────────

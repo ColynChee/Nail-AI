@@ -19,12 +19,15 @@ let STYLES = [
 ];
 
 let wishlist = [];
+let bookings = [];
+let tryonHistory = [];
+let imageTryonHistory = [];
 let userProfile = {
   name: '小美同学',
   avatar: '小',
   bio: '美甲爱好者',
-  tryonCount: 12,
-  bookingCount: 3
+  tryonCount: 0,
+  bookingCount: 0
 };
 let currentDetail = { emoji:'🌸', name:'樱花奶油', price:'¥199', bg:'#FFF0F5' };
 let prevScreen = 's-home';
@@ -71,4 +74,3 @@ async function loadDesignsFromBackend() {
     console.warn('[Designs] 后端加载失败，使用内置 12 款兜底:', e.message);
   }
 }
-

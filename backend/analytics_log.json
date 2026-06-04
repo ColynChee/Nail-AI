@@ -4640,5 +4640,61 @@
     "design_name": "薄荷青",
     "skin_tone": null,
     "success": true
+  },
+  {
+    "timestamp": "2026-06-04T16:56:28.582958",
+    "type": "try_on",
+    "design_id": "design_001",
+    "design_name": "裸色奶油",
+    "skin_tone": null,
+    "success": true
+  },
+  {
+    "timestamp": "2026-06-04T18:16:05.655273",
+    "type": "try_on",
+    "design_id": "design_001",
+    "design_name": "奶油裸粉",
+    "skin_tone": null,
+    "success": true
+  },
+  {
+    "timestamp": "2026-06-04T18:16:15.375095",
+    "type": "try_on",
+    "design_id": "design_001",
+    "design_name": "奶油裸粉",
+    "skin_tone": null,
+    "success": true
+  },
+  {
+    "timestamp": "2026-06-04T18:16:18.016106",
+    "type": "try_on",
+    "design_id": "design_001",
+    "design_name": "奶油裸粉",
+    "skin_tone": null,
+    "success": true
+  },
+  {
+    "timestamp": "2026-06-04T18:16:20.659082",
+    "type": "try_on",
+    "design_id": "design_001",
+    "design_name": "奶油裸粉",
+    "skin_tone": null,
+    "success": true
+  },
+  {
+    "timestamp": "2026-06-04T18:16:23.329703",
+    "type": "try_on",
+    "design_id": "design_001",
+    "design_name": "奶油裸粉",
+    "skin_tone": null,
+    "success": true
+  },
+  {
+    "timestamp": "2026-06-04T19:23:06.597775",
+    "type": "try_on",
+    "design_id": "design_001",
+    "design_name": "奶油裸粉",
+    "skin_tone": null,
+    "success": true
   }
 ]
