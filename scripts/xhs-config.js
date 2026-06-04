@@ -1,11 +1,11 @@
-/* ══════════════════════════════════
-   小红书实时数据配置
-══════════════════════════════════ */
-const XHS_TRENDING_CONFIG = {
-  // 填入你自己的后端接口，例如：'/api/xhs/trending-nails'
-  // 前端不会直接保存小红书 app-key / secret，避免泄露。
-  endpoint: '',
-  // 学生原型模式：没有官方接口时，用 scripts/xhs-keyword-heat.js 的关键词热度表生成热门榜。
-  keywordFallback: true,
+/* Platform trend configuration */
+const DOUYIN_TRENDING_CONFIG = {
+  // Backend endpoint. Keep API keys on the backend, never in the browser.
+  endpoint: 'http://localhost:8000/api/bilibili/trending-nails',
+  // Student prototype fallback: when live platform data is unavailable, backend returns local reference data.
+  keywordFallback: false,
   refreshMs: 5 * 60 * 1000
 };
+
+// Backward-compatible alias for the existing app wiring.
+const XHS_TRENDING_CONFIG = DOUYIN_TRENDING_CONFIG;

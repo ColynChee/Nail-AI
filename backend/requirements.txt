@@ -8,3 +8,5 @@ ollama>=0.1.2
 pydantic>=2.5.2
 python-dotenv>=1.0.0
 aiofiles>=23.2.1
+requests>=2.31.0
+openai>=1.0.0

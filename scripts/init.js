@@ -4,8 +4,10 @@
 loadPersistedState();
 applyProfile();
 renderGallery('全部');
+if (typeof renderOpsEntrySummary === 'function') renderOpsEntrySummary();
 loadDesignsFromBackend().then(() => {
   // 等待后端数据加载完成后，再刷新热门款式
+  if (typeof renderOpsEntrySummary === 'function') renderOpsEntrySummary();
   startXhsTrendingRefresh();
 });
 renderWishlist();
