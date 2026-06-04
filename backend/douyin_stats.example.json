@@ -1,0 +1,17 @@
+{
+  "updatedAt": "2026-06-02T00:00:00Z",
+  "source": "api",
+  "items": [
+    {
+      "design_id": "design_001",
+      "name": "Douyin official/exported video title",
+      "sub": "Authorized Douyin metrics",
+      "douyinUrl": "https://www.douyin.com/video/REPLACE_WITH_PUBLIC_VIDEO_ID",
+      "viewCount": 120000,
+      "likeCount": 8500,
+      "collectCount": 1200,
+      "commentCount": 430,
+      "shareCount": 260
+    }
+  ]
+}
