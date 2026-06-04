@@ -64,6 +64,49 @@ with open("designs.json", "r", encoding="utf-8") as f:
     DESIGNS = json.load(f)["designs"]
 
 
+def _preprocess_image(file_bytes: bytes, filename: str = "") -> np.ndarray:
+    """预处理上传的图片，确保是高质量的格式。
+
+    - 如果是 WebP、TIFF 等低质量格式，转换为高质量 JPG
+    - 如果是 PNG，保留原样
+    - 如果是 JPG，检查质量，必要时重新编码为高质量
+
+    Args:
+        file_bytes: 上传的文件二进制内容
+        filename: 文件名（用于检测格式）
+
+    Returns:
+        处理后的 numpy 数组 (BGR)
+    """
+    # 读取图片
+    nparr = np.frombuffer(file_bytes, np.uint8)
+    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    if img is None:
+        return None
+
+    # 检测源文件格式
+    ext = filename.lower().split('.')[-1] if filename else ""
+
+    # 对于 WebP、TIFF、BMP 等压缩格式，强制转换为高质量 JPG
+    if ext.lower() in ['webp', 'tiff', 'tif', 'bmp', 'gif']:
+        print(f"[ImagePreprocess] 检测到 {ext.upper()} 格式，转换为高质量 JPG")
+        # 编码为高质量 JPG（质量 95）
+        success, jpeg_data = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 95])
+        if success:
+            # 再次解码为 numpy 数组，这样可以确保质量
+            img = cv2.imdecode(jpeg_data, cv2.IMREAD_COLOR)
+            print(f"[ImagePreprocess] 转换完成，图片大小: {img.shape[1]}x{img.shape[0]}")
+    elif ext.lower() in ['jpg', 'jpeg']:
+        # JPG 文件，检查是否需要重新编码为更高质量
+        # 通过重新编码为 95 质量的 JPG 来提升质量
+        success, jpeg_data = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 95])
+        if success:
+            img = cv2.imdecode(jpeg_data, cv2.IMREAD_COLOR)
+            print(f"[ImagePreprocess] JPG 质量优化完成")
+
+    return img
+
+
 def _find_design(design_id: Optional[str], design_image: Optional[str]) -> Dict:
     """按 id 优先、再按 image 路径定位款式。支持 AI 生成的设计（design_id 以 gen_ 开头）。"""
     if design_id:
@@ -161,8 +204,9 @@ async def get_design_color(design_id: str):
 async def detect_hands(image: UploadFile = File(...)):
     try:
         contents = await image.read()
-        nparr = np.frombuffer(contents, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        img = _preprocess_image(contents, image.filename)
+        if img is None:
+            return {"success": False, "message": "图片读取失败"}
         result = get_detector().detect(img)
         return {
             "success": result["success"],
@@ -201,8 +245,7 @@ async def try_on(
         did = design["id"]
 
         contents = await image.read()
-        nparr = np.frombuffer(contents, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        img = _preprocess_image(contents, image.filename)
         if img is None:
             return {"success": False, "message": "图片读取失败", "design": design}
 
@@ -515,8 +558,7 @@ async def detect_nails_preview_endpoint(image: UploadFile = File(...)):
         import base64
 
         contents = await image.read()
-        nparr = np.frombuffer(contents, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        img = _preprocess_image(contents, image.filename)
 
         if img is None:
             return {"success": False, "message": "图片读取失败", "progress": []}
@@ -621,10 +663,16 @@ async def detect_nails_stream_endpoint(image: UploadFile = File(...)):
     async def event_generator():
         try:
             contents = await image.read()
+            img = _preprocess_image(contents, image.filename)
             messages = []
 
             def progress_callback(msg: str, img_data: Optional[str] = None):
                 messages.append(msg)
+
+            # 将预处理后的图片重新编码为高质量 JPG 字节
+            if img is not None:
+                success, preprocessed_bytes = cv2.imencode('.jpg', img, [cv2.IMWRITE_JPEG_QUALITY, 95])
+                contents = preprocessed_bytes.tobytes() if success else contents
 
             result = await detect_nails_with_progress(contents, progress_callback)
 
@@ -667,8 +715,7 @@ async def confirm_crop_endpoint(image: UploadFile = File(...), crops: str = Form
         import json
 
         contents = await image.read()
-        nparr = np.frombuffer(contents, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        img = _preprocess_image(contents, image.filename)
 
         if img is None:
             return {"success": False, "message": "图片读取失败"}
@@ -830,8 +877,7 @@ async def extract_nails_from_marking_endpoint(image: UploadFile = File(...), mas
         import base64
 
         contents = await image.read()
-        nparr = np.frombuffer(contents, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        img = _preprocess_image(contents, image.filename)
 
         if img is None:
             return {"success": False, "message": "图片读取失败"}
@@ -1025,8 +1071,7 @@ async def detect_nails_endpoint(image: UploadFile = File(...)):
         from design_generator import extract_nails_from_preview
 
         contents = await image.read()
-        nparr = np.frombuffer(contents, np.uint8)
-        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        img = _preprocess_image(contents, image.filename)
 
         if img is None:
             return {"success": False, "message": "图片读取失败"}

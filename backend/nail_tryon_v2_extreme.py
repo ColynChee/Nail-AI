@@ -348,7 +348,7 @@ def _warp_mold_extreme_direction(mold_bgra: np.ndarray, dst_mask: np.ndarray,
 
     (cx, cy), L, W = _nail_geometry(dst_mask, tip_angle)
     # 缩小宽度以适配真实指甲大小（YOLO mask 通常过大）
-    W_adjusted = W * 0.75  # 宽度缩小到 75%
+    W_adjusted = W * 0.95  # 宽度缩小到 95%
     W_target = standard_width if standard_width is not None else W_adjusted
 
     # 计算指甲方向向量（从指根到指尖）
@@ -670,7 +670,7 @@ def try_on(user_bgr: np.ndarray, design_id: str, color: Optional[str] = None,
                 ta = n.get("tip_angle", -90.0)
                 (cx, cy), L, W = _nail_geometry(n["mask"], ta)
                 # 应用相同的宽度缩放系数
-                W_adjusted = W * 0.75
+                W_adjusted = W * 0.9
                 widths.append(W_adjusted)
 
             if widths:

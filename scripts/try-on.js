@@ -221,7 +221,7 @@ function setStep(id, text, done) {
 }
 
 // ── 显示结果 ──────────────────────────
-function showTryonResult(imageBase64, analysisData) {
+function showTryonResult(imageBase64, analysisData, nApplied) {
   const resultEl = document.getElementById('tryon-result');
   const emojiEl  = document.getElementById('tryon-result-emoji');
 
@@ -280,6 +280,17 @@ function showTryonResult(imageBase64, analysisData) {
     }
 
     console.log('[TryOn] AI 分析数据更新: 匹配度=', confidence, '肤色=', skinTone, '手型=', handRating);
+  }
+
+  // 少于等于3个指甲时显示警告
+  const existingWarning = document.getElementById('tryon-nail-count-warning');
+  if (existingWarning) existingWarning.remove();
+  if (nApplied != null && nApplied <= 3) {
+    const warning = document.createElement('div');
+    warning.id = 'tryon-nail-count-warning';
+    warning.style.cssText = 'margin-top:10px;padding:10px 14px;background:#fff8e1;border-left:3px solid #f5a623;border-radius:6px;font-size:13px;color:#7a5c00;line-height:1.5';
+    warning.textContent = `仅检测到 ${nApplied} 个指甲，试戴效果欠佳，建议重新上传清晰的手部正面照片。`;
+    emojiEl.parentElement.appendChild(warning);
   }
 
   renderNailShapePanel();
@@ -536,7 +547,7 @@ async function applyTryonColor(hex) {
       const data = await requestTryOn(lastTryonFile, designImageOrId, currentTryonColor, true, _applyTryonAbortController.signal);
       console.log('[TryOn] 响应:', { success: data.success, hasImage: !!data.image_base64 });
       if (data.success) {
-        showTryonResult(data.image_base64, data.analysis || analysisData);
+        showTryonResult(data.image_base64, data.analysis || analysisData, data.n_applied);
         renderNailShapePanel();
         renderNailRotationPanel();
       } else {
@@ -877,7 +888,7 @@ async function confirmNailDetection() {
 
       if (data.success) {
         // 先展示试戴图，AI分析显示"分析中"占位
-        showTryonResult(data.image_base64, null);
+        showTryonResult(data.image_base64, null, data.n_applied);
         setStep('ps4', '⏳ AI 分析报告生成中…', false);
 
         // 第二阶段：异步调用AI分析，完成后更新
