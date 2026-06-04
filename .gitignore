@@ -12,6 +12,7 @@ backend/molds_preview/
 designs_generated/
 backend/*.log
 backend/diagnose_*.jpg
+backend/.ultralytics/
 
 # IDE
 .vscode/
@@ -29,3 +30,5 @@ backend/train_*.py
 # 其他临时文件
 cmd_*.txt
 *.xlsx
+.env
+backend/.env

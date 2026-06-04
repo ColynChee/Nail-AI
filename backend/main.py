@@ -16,6 +16,13 @@ import numpy as np
 from pathlib import Path
 import base64
 import os
+import sys
+from dotenv import load_dotenv
+
+load_dotenv()
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8")
 
 from hand_detector import get_detector
 from analytics import log_try_on, log_analyze_hand, get_analytics, get_design_analytics
@@ -29,6 +36,7 @@ from mold_generator import generate_mold_from_inspiration
 from bilibili_stats import BilibiliStatsError, get_bilibili_trending
 from douyin_stats import DouyinStatsError, get_douyin_trending, inspect_public_douyin_url
 from rednote_stats import RedNoteStatsError, get_rednote_trending, inspect_public_rednote_url
+from ops_assistant import generate_ops_assistant, get_modelscope_config_status
 
 app = FastAPI(title="美甲AI试戴后端服务", version="2.0.0")
 
@@ -157,6 +165,12 @@ def _find_design(design_id: Optional[str], design_image: Optional[str]) -> Dict:
 
 class DesignResponse(BaseModel):
     designs: List[Dict]
+
+
+class OpsAssistantRequest(BaseModel):
+    items: List[Dict] = []
+    summary: Dict = {}
+    trendBuckets: List[Dict] = []
 
 
 @app.get("/", tags=["健康检查"])
@@ -1231,6 +1245,16 @@ async def get_analytics_endpoint():
 @app.get("/api/analytics/design/{design_id}", tags=["数据分析"])
 async def get_design_analytics_endpoint(design_id: str):
     return get_design_analytics(design_id)
+
+
+@app.get("/api/ops/modelscope-status", tags=["智能运营"])
+async def get_ops_modelscope_status():
+    return get_modelscope_config_status()
+
+
+@app.post("/api/ops/assistant", tags=["智能运营"])
+async def generate_ops_assistant_endpoint(payload: OpsAssistantRequest):
+    return generate_ops_assistant(payload.model_dump())
 
 
 @app.get("/api/design-image/{design_id}", tags=["款式库"])

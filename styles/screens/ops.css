@@ -64,6 +64,35 @@
   margin-top:5px;
   font-size:10px;line-height:1.4;color:var(--text-soft);
 }
+.ops-chart-card{
+  position:relative;
+  height:238px;
+  border:.5px solid var(--border);
+  border-radius:var(--rMd);
+  background:var(--white);
+  padding:12px;
+  box-shadow:var(--shadow-card);
+}
+.ops-chart-card canvas{
+  width:100% !important;
+  height:100% !important;
+  display:block;
+}
+.ops-chart-empty{
+  position:absolute;
+  inset:12px;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  border-radius:12px;
+  background:var(--warm-gray);
+  color:var(--text-soft);
+  font-size:11px;
+  line-height:1.5;
+}
+.ops-chart-card.is-empty canvas{display:none}
+.ops-chart-card.is-empty .ops-chart-empty{display:flex}
 .ops-trends{
   display:grid;grid-template-columns:1fr 1fr;gap:10px;
 }
