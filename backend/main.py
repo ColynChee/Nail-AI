@@ -19,7 +19,10 @@ import numpy as np
 from pathlib import Path
 import sys
 from dotenv import load_dotenv
-from openai import OpenAI
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
 
 load_dotenv()
 for _stream in (sys.stdout, sys.stderr):
@@ -636,9 +639,10 @@ async def try_on(
         elif custom_angles:
             # 如果没有前端检测结果但有自定义角度，则自己分割并应用角度
             from nail_seg import segment_nails as seg_nails
-            pre_nails = seg_nails(img)
+            _detected = seg_nails(img)
+            pre_nails = _detected if _detected else None
             # 应用用户自定义的角度
-            for nail in pre_nails:
+            for nail in (pre_nails or []):
                 finger_idx = str(nail.get("finger_idx", -1))
                 if finger_idx in custom_angles:
                     nail["tip_angle"] = float(custom_angles[finger_idx])
@@ -1555,7 +1559,15 @@ async def detect_nails_vision_endpoint(image: UploadFile = File(...)):
 
         # 解析响应
         response_text = message.content[0].text
-        nail_info = json.loads(response_text)
+        try:
+            nail_info = json.loads(response_text)
+        except json.JSONDecodeError:
+            import re as _re
+            m = _re.search(r'\{.*\}', response_text, _re.DOTALL)
+            if m:
+                nail_info = json.loads(m.group(0))
+            else:
+                nail_info = {"nails": []}
 
         # 根据识别结果裁剪指甲
         nail_images = []
@@ -1806,6 +1818,8 @@ async def analyze_tryon_endpoint(
             design_image_path=design_image_path,
             design_name=design.get("name", "当前款式")
         )
+        if analysis is None:
+            return {"success": False, "message": "AI分析服务暂时不可用"}
         print(f"[AnalyzeTryOn] AI分析完成: 匹配度 {analysis.get('confidence', 0):.0%}")
         return {"success": True, "analysis": analysis}
 

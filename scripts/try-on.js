@@ -659,122 +659,114 @@ async function startTryon() {
 
 // ── 检测预览 API 调用 ──────────────
 async function detectNailsPreview(file) {
-  return new Promise(async (resolve, reject) => {
-    // ===== 清空所有之前的检测和试戴数据 =====
-    lastDetectionResult = null;
-    // 注：不清空 lastTryonFile，它在 startTryon 中设置，这里清空会导致后续试戴失败
-    nailShape = 'oval';
-    nailLength = 1.0;
-    nailWidth = 1.0;
-    nailAngles = {};
-    fingersExpanded = {};
-    currentTryonColor = null;
-    analysisData = null;
+  // ===== 清空所有之前的检测和试戴数据 =====
+  lastDetectionResult = null;
+  // 注：不清空 lastTryonFile，它在 startTryon 中设置，这里清空会导致后续试戴失败
+  nailShape = 'oval';
+  nailLength = 1.0;
+  nailWidth = 1.0;
+  nailAngles = {};
+  fingersExpanded = {};
+  currentTryonColor = null;
+  analysisData = null;
 
-    // 清空UI - 进度条和消息
-    const progressBar = document.getElementById('tryon-progress-bar');
-    if (progressBar) progressBar.style.width = '0%';
-    const progressPercent = document.getElementById('tryon-progress-percent');
-    if (progressPercent) progressPercent.textContent = '0%';
+  // 清空UI - 进度条和消息
+  const progressBar = document.getElementById('tryon-progress-bar');
+  if (progressBar) progressBar.style.width = '0%';
+  const progressPercent = document.getElementById('tryon-progress-percent');
+  if (progressPercent) progressPercent.textContent = '0%';
 
-    // 清空预览图片内容（但保留元素可见，待检测完成后填充）
-    const previewImg = document.getElementById('tryon-preview-image');
-    if (previewImg) {
-      previewImg.innerHTML = '';
-    }
+  // 清空预览图片内容（但保留元素可见，待检测完成后填充）
+  const previewImg = document.getElementById('tryon-preview-image');
+  if (previewImg) {
+    previewImg.innerHTML = '';
+  }
 
-    // 隐藏试戴结果卡片和调整面板
-    const resultEl = document.getElementById('tryon-result');
-    if (resultEl) resultEl.classList.remove('show');
-    const adjustContainer = document.getElementById('tryon-adjustment-container');
-    if (adjustContainer) adjustContainer.remove();
+  // 隐藏试戴结果卡片和调整面板
+  const resultEl = document.getElementById('tryon-result');
+  if (resultEl) resultEl.classList.remove('show');
+  const adjustContainer = document.getElementById('tryon-adjustment-container');
+  if (adjustContainer) adjustContainer.remove();
 
-    // 显示预览卡片
-    const previewCard = document.getElementById('tryon-detection-preview');
-    const progressMsg = document.getElementById('tryon-progress-message');
-    const spinner = document.getElementById('spinner');
+  // 显示预览卡片
+  const previewCard = document.getElementById('tryon-detection-preview');
+  const progressMsg = document.getElementById('tryon-progress-message');
+  const spinner = document.getElementById('spinner');
 
-    if (previewCard) previewCard.style.display = 'block';
-    if (spinner) spinner.style.display = 'inline-block';
+  if (previewCard) previewCard.style.display = 'block';
+  if (spinner) spinner.style.display = 'inline-block';
 
-    try {
-      // 上传文件到后端流接口
-      const formData = new FormData();
-      formData.append('image', file);
+  // 上传文件到后端流接口
+  const formData = new FormData();
+  formData.append('image', file);
 
-      const response = await fetch(`${API_BASE}/api/detect-nails-preview`, {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      const data = await response.json();
-
-      // 显示进度消息和进度条
-      if (data.progress && Array.isArray(data.progress)) {
-        const totalSteps = data.progress.length;
-        for (let idx = 0; idx < data.progress.length; idx++) {
-          const msg = data.progress[idx];
-          if (progressMsg) progressMsg.textContent = msg;
-
-          // 更新进度条
-          const progress = Math.round(((idx + 1) / totalSteps) * 100);
-          const progressBar = document.getElementById('tryon-progress-bar');
-          const progressPercent = document.getElementById('tryon-progress-percent');
-          if (progressBar) progressBar.style.width = progress + '%';
-          if (progressPercent) progressPercent.textContent = progress + '%';
-
-          await new Promise(resolve => setTimeout(resolve, 300));
-        }
-      }
-
-      // 显示检测结果
-      if (data.success) {
-        if (data.image_data && previewImg) {
-          // 设置图片src
-          previewImg.src = data.image_data;
-
-          // 使用onload事件显示按钮
-          const showButtons = () => {
-            console.log('[DetectNails] 预览图加载完成，显示按钮');
-            const buttonsEl = document.getElementById('tryon-detection-buttons');
-            if (buttonsEl) {
-              buttonsEl.style.display = 'flex';
-            }
-            if (spinner) spinner.style.display = 'none';
-          };
-
-          // 如果图片已缓存，onload可能不会触发，所以用setTimeout备用
-          previewImg.onload = showButtons;
-          previewImg.onerror = () => {
-            console.warn('[DetectNails] 预览图加载失败');
-            showButtons();
-          };
-
-          // 如果1秒后onload还没触发，强制显示按钮
-          setTimeout(() => {
-            const buttonsEl = document.getElementById('tryon-detection-buttons');
-            if (buttonsEl && buttonsEl.style.display === 'none') {
-              showButtons();
-            }
-          }, 1000);
-        } else {
-          if (spinner) spinner.style.display = 'none';
-          const buttonsEl = document.getElementById('tryon-detection-buttons');
-          if (buttonsEl) buttonsEl.style.display = 'flex';
-        }
-        resolve(data);
-      } else {
-        throw new Error(data.message || '检测失败');
-      }
-
-    } catch (error) {
-      console.error('[DetectNails] 错误:', error);
-      if (spinner) spinner.style.display = 'none';
-      reject(error);
-    }
+  const response = await fetch(`${API_BASE}/api/detect-nails-preview`, {
+    method: 'POST',
+    body: formData
   });
+
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+  const data = await response.json();
+
+  // 显示进度消息和进度条
+  if (data.progress && Array.isArray(data.progress)) {
+    const totalSteps = data.progress.length;
+    for (let idx = 0; idx < data.progress.length; idx++) {
+      const msg = data.progress[idx];
+      if (progressMsg) progressMsg.textContent = msg;
+
+      // 更新进度条
+      const progress = Math.round(((idx + 1) / totalSteps) * 100);
+      const progressBar = document.getElementById('tryon-progress-bar');
+      const progressPercent = document.getElementById('tryon-progress-percent');
+      if (progressBar) progressBar.style.width = progress + '%';
+      if (progressPercent) progressPercent.textContent = progress + '%';
+
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+  }
+
+  // 显示检测结果
+  if (data.success) {
+    if (data.image_data && previewImg) {
+      // 设置图片src
+      previewImg.src = data.image_data;
+
+      // 使用onload事件显示按钮
+      const showButtons = () => {
+        console.log('[DetectNails] 预览图加载完成，显示按钮');
+        const buttonsEl = document.getElementById('tryon-detection-buttons');
+        if (buttonsEl) {
+          buttonsEl.style.display = 'flex';
+        }
+        if (spinner) spinner.style.display = 'none';
+      };
+
+      // 如果图片已缓存，onload可能不会触发，所以用setTimeout备用
+      previewImg.onload = showButtons;
+      previewImg.onerror = () => {
+        console.warn('[DetectNails] 预览图加载失败');
+        showButtons();
+      };
+
+      // 如果1秒后onload还没触发，强制显示按钮
+      setTimeout(() => {
+        const buttonsEl = document.getElementById('tryon-detection-buttons');
+        if (buttonsEl && buttonsEl.style.display === 'none') {
+          showButtons();
+        }
+      }, 1000);
+    } else {
+      if (spinner) spinner.style.display = 'none';
+      const buttonsEl = document.getElementById('tryon-detection-buttons');
+      if (buttonsEl) buttonsEl.style.display = 'flex';
+    }
+    return data;
+  } else {
+    if (spinner) spinner.style.display = 'none';
+    throw new Error(data.message || '检测失败');
+  }
 }
 
 // ── 显示检测预览 ──────────────
@@ -1166,12 +1158,14 @@ function saveTryonToWishlist() {
 }
 
 // ── 页面切换时检查生成的设计 ──────────
-(function() {
+// Defer the patch so other scripts have had a chance to define window.go first.
+window.addEventListener('DOMContentLoaded', function() {
   const originalGo = window.go;
   window.go = function(screenId) {
     if (screenId === 's-tryon') {
       initGeneratedDesignIfExists();
     }
-    return originalGo ? originalGo(screenId) : hideAllScreens(screenId);
+    if (typeof originalGo === 'function') return originalGo(screenId);
+    if (typeof hideAllScreens === 'function') return hideAllScreens(screenId);
   };
-})();
+});

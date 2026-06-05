@@ -36,10 +36,15 @@ deepseek_client = OpenAI(
 
 # ModelScope 通用 API
 MODELSCOPE_BASE_URL = "https://api-inference.modelscope.cn/"
-COMMON_HEADERS = {
-    "Authorization": MODELSCOPE_TOKEN,
-    "Content-Type": "application/json",
-}
+
+
+def _get_common_headers() -> dict:
+    """Build headers fresh each call so a late-set env var is always picked up."""
+    token = os.getenv("MODELSCOPE_TOKEN", MODELSCOPE_TOKEN)
+    return {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
 
 
 def _require_modelscope_token() -> None:
@@ -166,7 +171,7 @@ def generate_image(prompt: str, max_wait: int = 300) -> Optional[np.ndarray]:
     # 1) 提交任务
     submit_response = requests.post(
         f"{MODELSCOPE_BASE_URL}v1/images/generations",
-        headers={**COMMON_HEADERS, "X-ModelScope-Async-Mode": "true"},
+        headers={**_get_common_headers(), "X-ModelScope-Async-Mode": "true"},
         json={
             "model": "Qwen/Qwen-Image-2512",
             "prompt": prompt,
@@ -176,7 +181,11 @@ def generate_image(prompt: str, max_wait: int = 300) -> Optional[np.ndarray]:
         }
     )
     submit_response.raise_for_status()
-    task_id = submit_response.json()["task_id"]
+    submit_data = submit_response.json()
+    task_id = submit_data.get("task_id")
+    if not task_id:
+        print(f"[Qwen] Submit response missing task_id: {submit_data}")
+        return None
     print(f"[Qwen] Image generation task: {task_id}")
 
     # 2) 轮询等待结果
@@ -184,14 +193,18 @@ def generate_image(prompt: str, max_wait: int = 300) -> Optional[np.ndarray]:
     while time.time() - start_time < max_wait:
         result = requests.get(
             f"{MODELSCOPE_BASE_URL}v1/tasks/{task_id}",
-            headers={**COMMON_HEADERS, "X-ModelScope-Task-Type": "image_generation"},
+            headers={**_get_common_headers(), "X-ModelScope-Task-Type": "image_generation"},
         )
         result.raise_for_status()
         data = result.json()
 
-        if data["task_status"] == "SUCCEED":
+        if data.get("task_status") == "SUCCEED":
             # 下载图片
-            img_url = data["output_images"][0]
+            output_images = data.get("output_images") or []
+            if not output_images:
+                print(f"[Qwen] SUCCEED but no output_images in response: {data}")
+                return None
+            img_url = output_images[0]
             img_response = requests.get(img_url)
             img_array = cv2.imdecode(
                 np.frombuffer(img_response.content, np.uint8),
@@ -200,7 +213,7 @@ def generate_image(prompt: str, max_wait: int = 300) -> Optional[np.ndarray]:
             print(f"[Qwen] Image generated successfully")
             return img_array
 
-        elif data["task_status"] == "FAILED":
+        elif data.get("task_status") == "FAILED":
             print(f"[Qwen] Image generation failed")
             return None
 
@@ -381,7 +394,7 @@ def apply_texture_to_nail(texture_img: np.ndarray, nail_mask_path: Optional[str]
     result = cv2.cvtColor(texture_resized, cv2.COLOR_BGR2BGRA)
 
     # 用模具作为 alpha 通道
-    result[:, :, 3] = (mask * (mask / 255.0)).astype(np.uint8)
+    result[:, :, 3] = mask
 
     return result
 
