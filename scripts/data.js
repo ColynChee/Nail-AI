@@ -39,7 +39,7 @@ let currentFilter = '全部';
 let tryonStyleInfo = { emoji:'🌸', name:'樱花奶油', price:'¥199', bg:'#FFF0F5' };
 
 // 后端地址（与 try-on.js 的 API_BASE 一致）
-const DESIGNS_API = 'http://localhost:8000/api/designs';
+const DESIGNS_API = window.API_BASE + '/api/designs';
 
 const DEFAULT_SKIN_COLOR = '#F5C6A0';
 

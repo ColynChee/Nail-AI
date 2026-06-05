@@ -6,7 +6,13 @@
 <meta name="theme-color" content="#FF6B35">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title>甲美 NailAI</title>
+<meta name="apple-mobile-web-app-title" content="指上谈兵">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="足不出户试甲纱，指尖靓丽人人夸 —— AI 美甲设计与虚拟试戴">
+<title>指上谈兵 · AI美甲试戴</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<link rel="icon" type="image/png" href="assets/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles/main.css">
@@ -1250,6 +1256,7 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
+<script src="scripts/config.js"></script>
 <script src="scripts/data.js"></script>
 <script src="scripts/storage.js"></script>
 <script src="scripts/auth.js?v=auth-20260606b"></script>
@@ -1273,6 +1280,16 @@
 <script src="scripts/skin-sheet.js"></script>
 <script src="scripts/toast.js"></script>
 <script src="scripts/init.js"></script>
+<script>
+  // 注册 Service Worker（PWA 离线 + 可安装）
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(reg => console.log('[PWA] Service Worker 注册成功:', reg.scope))
+        .catch(err => console.warn('[PWA] Service Worker 注册失败:', err));
+    });
+  }
+</script>
 </body>
 </html>
 

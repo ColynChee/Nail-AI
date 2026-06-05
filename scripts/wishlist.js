@@ -1,7 +1,7 @@
 ﻿/* ══════════════════════════════════
    WISHLIST
 ══════════════════════════════════ */
-const WISHLIST_API_BASE = 'http://localhost:8000';
+const WISHLIST_API_BASE = window.API_BASE;
 
 function _wishlistSyncAdd(item) {
   if (!window.userClientId) return;

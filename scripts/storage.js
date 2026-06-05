@@ -95,7 +95,7 @@ function saveProfileState() {
 async function loadProfileFromBackend() {
   const clientId = window.userClientId || getOrCreateClientId();
   try {
-    const response = await fetch(`http://localhost:8000/api/profile?client_id=${encodeURIComponent(clientId)}`, { cache: 'no-store' });
+    const response = await fetch(`${window.API_BASE}/api/profile?client_id=${encodeURIComponent(clientId)}`, { cache: 'no-store' });
     if (!response.ok) return null;
     const data = await response.json();
     const profile = data && data.profile ? data.profile : null;
@@ -126,7 +126,7 @@ async function syncProfileToBackend() {
       : (userProfile.recommendedStyleIds || []),
   };
 
-  const response = await fetch('http://localhost:8000/api/profile', {
+  const response = await fetch(`${window.API_BASE}/api/profile`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),

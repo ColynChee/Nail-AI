@@ -5,7 +5,7 @@ let opsLastItems = [];
 let opsAssistantSignature = '';
 let opsAssistantRequestId = 0;
 let opsTrendChart = null;
-const OPS_API_BASE = 'http://localhost:8000';
+const OPS_API_BASE = window.API_BASE;
 
 function opsNumber(value) {
   if (typeof toTrafficNumber === 'function') return toTrafficNumber(value);

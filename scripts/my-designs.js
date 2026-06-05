@@ -1,7 +1,7 @@
 /* ══════════════════════════════════
    我的设计 (My Designs)
 ══════════════════════════════════ */
-const MD_API_BASE = 'http://localhost:8000';
+const MD_API_BASE = window.API_BASE;
 
 let myDesigns = [];
 let _mdEditingId = null;       // 正在编辑的款式 id（null = 新增）

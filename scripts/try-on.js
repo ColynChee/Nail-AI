@@ -3,7 +3,7 @@
 ══════════════════════════════════ */
 
 // 后端地址（与 main.py 保持一致）
-const API_BASE = 'http://localhost:8000';
+const API_BASE = window.API_BASE;
 
 // 缓存上传的手图与当前款式，供颜色切换复用
 let lastTryonFile = null;

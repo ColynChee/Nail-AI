@@ -75,7 +75,7 @@ async function runDetectNails() {
   document.getElementById('isearch-spinner').classList.add('show');
 
   try {
-    const response = await fetch('http://localhost:8000/api/detect-nails-preview', {
+    const response = await fetch(`${window.API_BASE}/api/detect-nails-preview`, {
       method: 'POST',
       body: formData
     });
@@ -312,7 +312,7 @@ async function confirmCrop() {
   document.getElementById('isearch-spinner').classList.add('show');
 
   try {
-    const response = await fetch('http://localhost:8000/api/extract-nails-from-marking', {
+    const response = await fetch(`${window.API_BASE}/api/extract-nails-from-marking`, {
       method: 'POST',
       body: formData
     });
@@ -437,7 +437,7 @@ async function confirmAutoDetect() {
   document.getElementById('isearch-spinner').classList.add('show');
 
   try {
-    const response = await fetch('http://localhost:8000/api/confirm-crop', {
+    const response = await fetch(`${window.API_BASE}/api/confirm-crop`, {
       method: 'POST',
       body: formData
     });
@@ -511,7 +511,7 @@ async function redetectWithParams() {
   document.getElementById('isearch-spinner').classList.add('show');
 
   try {
-    const response = await fetch('http://localhost:8000/api/detect-nails', {
+    const response = await fetch(`${window.API_BASE}/api/detect-nails`, {
       method: 'POST',
       body: formData
     });
@@ -561,7 +561,7 @@ async function useVisionCropping() {
   document.getElementById('isearch-spinner').classList.add('show');
 
   try {
-    const response = await fetch('http://localhost:8000/api/detect-nails-vision', {
+    const response = await fetch(`${window.API_BASE}/api/detect-nails-vision`, {
       method: 'POST',
       body: formData
     });

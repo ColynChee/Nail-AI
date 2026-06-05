@@ -1,7 +1,7 @@
 /* ══════════════════════════════════
    账号 / 登录
 ══════════════════════════════════ */
-const AUTH_API_BASE = 'http://localhost:8000';
+const AUTH_API_BASE = window.API_BASE;
 
 async function authRegister(username, password) {
   let res;

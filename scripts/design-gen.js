@@ -2,7 +2,7 @@
    AI DESIGN GENERATOR
 ═══════════════════════════════════════ */
 
-const DESIGN_API_BASE = 'http://localhost:8000';
+const DESIGN_API_BASE = window.API_BASE;
 let currentDesign = null;
 
 // ── Chip 选择逻辑 ──────────────────────
