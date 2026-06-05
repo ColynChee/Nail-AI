@@ -1,0 +1,18 @@
+/* ═══════════════════════════════════════
+   ⓪ LOGIN
+═══════════════════════════════════════ */
+#s-login{background:linear-gradient(160deg,#FF7A45 0%,#FF9E6D 45%,#FFF4ED 100%)}
+.login-wrap{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 28px}
+.login-logo{font-size:56px;margin-bottom:10px}
+.login-title{font-size:24px;font-weight:900;color:#fff;font-family:'Nunito',sans-serif;letter-spacing:.5px}
+.login-sub{font-size:13px;color:rgba(255,255,255,.9);margin:6px 0 26px}
+.login-card{width:100%;background:#fff;border-radius:20px;padding:22px 20px;box-shadow:0 12px 40px rgba(0,0,0,.15)}
+.auth-tabs{display:flex;gap:8px;background:var(--warm-gray);border-radius:var(--rPill);padding:4px;margin-bottom:18px}
+.auth-tab{flex:1;border:none;background:none;padding:9px 0;border-radius:var(--rPill);font-size:14px;font-weight:700;color:var(--text-soft);font-family:inherit;cursor:pointer;transition:all .18s}
+.auth-tab.active{background:var(--orange);color:#fff}
+.auth-input{width:100%;border:1px solid var(--border);border-radius:var(--rMd);padding:12px 14px;font-size:15px;color:var(--text-dark);font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:12px}
+.auth-input:focus{border-color:var(--orange)}
+.auth-error{min-height:18px;font-size:12px;color:#E0231C;margin-bottom:8px;text-align:center}
+.auth-submit{width:100%;padding:13px;border:none;border-radius:var(--rPill);background:var(--orange);color:#fff;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer}
+.auth-submit:active{transform:scale(.98)}
+.auth-submit:disabled{opacity:.6}

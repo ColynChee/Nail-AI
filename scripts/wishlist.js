@@ -1,11 +1,30 @@
 ﻿/* ══════════════════════════════════
    WISHLIST
 ══════════════════════════════════ */
+const WISHLIST_API_BASE = 'http://localhost:8000';
+
+function _wishlistSyncAdd(item) {
+  if (!window.userClientId) return;
+  fetch(`${WISHLIST_API_BASE}/api/wishlist`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ client_id: window.userClientId, ...item }),
+  }).catch(e => console.warn('[Wishlist] 同步添加失败:', e.message));
+}
+
+function _wishlistSyncRemove(name) {
+  if (!window.userClientId) return;
+  fetch(`${WISHLIST_API_BASE}/api/wishlist?client_id=${encodeURIComponent(window.userClientId)}&name=${encodeURIComponent(name)}`, {
+    method: 'DELETE',
+  }).catch(e => console.warn('[Wishlist] 同步删除失败:', e.message));
+}
+
 function addToWishlist(emoji, name, price, bg, image) {
   if (!wishlist.find(w => w.name === name)) {
     wishlist.push({ emoji, name, price, bg, image: image || '' });
     saveWishlistState();
     updateProfileCounts();
+    _wishlistSyncAdd({ name, emoji, price, bg, image: image || '' });
   }
 }
 
@@ -18,6 +37,7 @@ function toggleHeart(btn, name, emoji, price, bg, image) {
     wishlist = wishlist.filter(w => w.name !== name);
     saveWishlistState();
     updateProfileCounts();
+    _wishlistSyncRemove(name);
     showToast('已移出收藏');
   }
 }
@@ -47,10 +67,12 @@ function renderWishlist() {
 }
 
 function removeWishlist(i) {
+  const removed = wishlist[i];
   wishlist.splice(i, 1);
   saveWishlistState();
   renderWishlist();
   updateProfileCounts();
+  if (removed) _wishlistSyncRemove(removed.name);
   showToast('已移出收藏');
 }
 

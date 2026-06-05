@@ -6,6 +6,8 @@
 """
 import base64
 import os
+import hashlib
+import secrets
 
 from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -103,6 +105,39 @@ class UserDesignUpdateRequest(BaseModel):
     recommended_colors: Optional[List[str]] = None
     description: Optional[str] = None
     tags: Optional[List[str]] = None
+
+
+class AuthRequest(BaseModel):
+    username: str
+    password: str
+
+
+class WishlistItemRequest(BaseModel):
+    client_id: str
+    name: str
+    emoji: Optional[str] = None
+    price: Optional[str] = None
+    bg: Optional[str] = None
+    image: Optional[str] = None
+
+
+def _new_salt() -> str:
+    return secrets.token_hex(16)
+
+
+def _hash_password(password: str, salt_hex: str) -> str:
+    return hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), bytes.fromhex(salt_hex), 200_000).hex()
+
+
+def _verify_password(password: str, salt_hex: str, expected_hash: str) -> bool:
+    try:
+        return secrets.compare_digest(_hash_password(password, salt_hex), expected_hash)
+    except Exception:
+        return False
+
+
+def _new_client_key() -> str:
+    return "acct_" + secrets.token_urlsafe(16)
 
 
 def _normalize_hex_color(value: Optional[str]) -> Optional[str]:
@@ -1103,6 +1138,135 @@ async def delete_user_design(design_id: int, client_id: str):
         raise
     except Exception as e:
         print(f"[UserDesign] delete failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===== 账号系统 =====
+@app.post("/api/auth/register", tags=["账号"])
+async def auth_register(payload: AuthRequest):
+    username = (payload.username or "").strip()
+    password = payload.password or ""
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="用户名和密码不能为空")
+    if len(password) < 4:
+        raise HTTPException(status_code=400, detail="密码至少 4 位")
+
+    pool = getattr(app.state, "db_pool", None)
+    if pool is None:
+        raise HTTPException(status_code=503, detail="数据库连接未就绪")
+
+    import asyncpg
+    salt = _new_salt()
+    pwhash = _hash_password(password, salt)
+    client_key = _new_client_key()
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                INSERT INTO accounts (username, password_hash, salt, client_key)
+                VALUES ($1, $2, $3, $4)
+                RETURNING client_key, username
+                """,
+                username, pwhash, salt, client_key,
+            )
+        return {"success": True, "client_id": row["client_key"], "username": row["username"]}
+    except asyncpg.UniqueViolationError:
+        raise HTTPException(status_code=409, detail="用户名已存在")
+    except Exception as e:
+        print(f"[Auth] register failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/auth/login", tags=["账号"])
+async def auth_login(payload: AuthRequest):
+    username = (payload.username or "").strip()
+    password = payload.password or ""
+    if not username or not password:
+        raise HTTPException(status_code=400, detail="用户名和密码不能为空")
+
+    pool = getattr(app.state, "db_pool", None)
+    if pool is None:
+        raise HTTPException(status_code=503, detail="数据库连接未就绪")
+
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "SELECT password_hash, salt, client_key, username FROM accounts WHERE username = $1",
+                username,
+            )
+        if row is None or not _verify_password(password, row["salt"], row["password_hash"]):
+            raise HTTPException(status_code=401, detail="用户名或密码错误")
+        return {"success": True, "client_id": row["client_key"], "username": row["username"]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[Auth] login failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===== 收藏（服务端）=====
+@app.get("/api/wishlist", tags=["收藏"])
+async def list_wishlist(client_id: str):
+    if not client_id:
+        raise HTTPException(status_code=400, detail="缺少 client_id")
+    pool = getattr(app.state, "db_pool", None)
+    if pool is None:
+        raise HTTPException(status_code=503, detail="数据库连接未就绪")
+    try:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT name, emoji, price, bg, image FROM user_wishlist WHERE client_id = $1 ORDER BY created_at DESC",
+                client_id,
+            )
+        return {"success": True, "items": [dict(r) for r in rows]}
+    except Exception as e:
+        print(f"[Wishlist] list failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/wishlist", tags=["收藏"])
+async def add_wishlist(payload: WishlistItemRequest):
+    if not payload.client_id or not payload.name:
+        raise HTTPException(status_code=400, detail="缺少 client_id 或 name")
+    pool = getattr(app.state, "db_pool", None)
+    if pool is None:
+        raise HTTPException(status_code=503, detail="数据库连接未就绪")
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                INSERT INTO user_wishlist (client_id, name, emoji, price, bg, image)
+                VALUES ($1, $2, $3, $4, $5, $6)
+                ON CONFLICT (client_id, name) DO UPDATE SET
+                  emoji = EXCLUDED.emoji, price = EXCLUDED.price,
+                  bg = EXCLUDED.bg, image = EXCLUDED.image
+                RETURNING name, emoji, price, bg, image
+                """,
+                payload.client_id, payload.name, payload.emoji,
+                payload.price, payload.bg, payload.image,
+            )
+        return {"success": True, "item": dict(row)}
+    except Exception as e:
+        print(f"[Wishlist] add failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/wishlist", tags=["收藏"])
+async def delete_wishlist(client_id: str, name: str):
+    if not client_id or not name:
+        raise HTTPException(status_code=400, detail="缺少 client_id 或 name")
+    pool = getattr(app.state, "db_pool", None)
+    if pool is None:
+        raise HTTPException(status_code=503, detail="数据库连接未就绪")
+    try:
+        async with pool.acquire() as conn:
+            await conn.execute(
+                "DELETE FROM user_wishlist WHERE client_id = $1 AND name = $2",
+                client_id, name,
+            )
+        return {"success": True}
+    except Exception as e:
+        print(f"[Wishlist] delete failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -15,9 +15,31 @@
 <div class="phone" id="app">
 
 <!-- ════════════════════════════════
+  ⓪ LOGIN
+════════════════════════════════ -->
+<div class="screen" id="s-login">
+  <div class="login-wrap">
+    <div class="login-logo">💅</div>
+    <div class="login-title">美甲 AI 试戴</div>
+    <div class="login-sub">登录后保存你的收藏与设计</div>
+    <div class="login-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="auth-tab-login" onclick="switchAuthMode('login')">登录</button>
+        <button class="auth-tab" id="auth-tab-register" onclick="switchAuthMode('register')">注册</button>
+      </div>
+      <input type="text" id="auth-username" class="auth-input" placeholder="用户名" autocomplete="username">
+      <input type="password" id="auth-password" class="auth-input" placeholder="密码（至少4位）" autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')submitAuth()">
+      <div class="auth-error" id="auth-error"></div>
+      <button class="auth-submit" id="auth-submit" onclick="submitAuth()">登录</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
   ① HOME
 ════════════════════════════════ -->
-<div class="screen active" id="s-home">
+<div class="screen" id="s-home">
   <div class="sbar"><span class="sbar-l">9:41</span><div class="sbar-r"><span>●●●</span><span>WiFi</span><span>98%</span></div></div>
   <div class="topnav">
     <form class="search-pill" onsubmit="handleHomeSearch(this.querySelector('input').value);this.querySelector('input').blur();return false;">
@@ -831,6 +853,11 @@
         <div class="m-label">编辑资料</div>
         <div class="m-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
       </div>
+      <div class="menu-item" onclick="doLogout()">
+        <div class="m-icon" style="background:#FFE9E6"><svg viewBox="0 0 24 24" style="stroke:#E0231C"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
+        <div class="m-label" style="color:#E0231C">退出登录</div>
+        <div class="m-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </div>
     </div>
   </div>
   <div class="bnav">
@@ -1221,6 +1248,7 @@
 
 <script src="scripts/data.js"></script>
 <script src="scripts/storage.js"></script>
+<script src="scripts/auth.js?v=auth-20260606"></script>
 <script src="scripts/navigation.js"></script>
 <script src="scripts/xhs-config.js"></script>
 <script src="scripts/xhs-keyword-heat.js"></script>
@@ -1232,7 +1260,7 @@
 <script src="scripts/try-on.js"></script>
 <script src="scripts/image-search.js"></script>
 <script src="scripts/design-gen.js"></script>
-<script src="scripts/wishlist.js"></script>
+<script src="scripts/wishlist.js?v=auth-20260606"></script>
 <script src="scripts/my-designs.js?v=mydesigns-20260606"></script>
 <script src="scripts/profile.js"></script>
 <script>

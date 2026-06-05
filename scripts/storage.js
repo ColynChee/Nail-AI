@@ -7,8 +7,25 @@ const STORAGE_KEYS = {
   clientId: 'nailai-client-id',
   bookings: 'nailai-bookings',
   tryonHistory: 'nailai-tryon-history',
-  imageTryonHistory: 'nailai-image-tryon-history'
+  imageTryonHistory: 'nailai-image-tryon-history',
+  session: 'nailai-session'
 };
+
+// ── 登录会话 ──
+function getSession() {
+  const s = readStorage(STORAGE_KEYS.session, null);
+  return (s && s.client_id) ? s : null;
+}
+
+function setSession(obj) {
+  writeStorage(STORAGE_KEYS.session, obj);
+  if (obj && obj.client_id) window.userClientId = obj.client_id;
+}
+
+function clearSession() {
+  try { localStorage.removeItem(STORAGE_KEYS.session); } catch (e) {}
+  window.userClientId = null;
+}
 
 function readStorage(key, fallback) {
   try {
