@@ -13,7 +13,7 @@
 ═══════════════════════════════════════ */
 .topnav{
   background:var(--orange);
-  padding:6px 14px 13px;
+  padding:8px 10px 10px;
   display:flex;align-items:center;gap:9px;
   flex-shrink:0;
 }
@@ -35,7 +35,7 @@
 /* Search bar */
 .search-pill{
   flex:1;background:#fff;border-radius:var(--rPill);
-  padding:8px 13px;display:flex;align-items:center;gap:7px;
+  padding:6px 13px;display:flex;align-items:center;gap:7px;
 }
 .search-pill svg{width:15px;height:15px;fill:none;stroke:var(--orange);stroke-width:2;stroke-linecap:round;flex-shrink:0}
 .search-pill input{border:none;outline:none;font-size:13px;color:var(--text-mid);background:transparent;width:100%;font-family:inherit}
