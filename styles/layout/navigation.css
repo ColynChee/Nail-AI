@@ -2,10 +2,7 @@
    STATUS BAR
 ═══════════════════════════════════════ */
 .sbar{
-  background:var(--orange);
-  padding:11px 22px 5px;
-  display:flex;justify-content:space-between;align-items:center;
-  flex-shrink:0;
+  display:none;
 }
 .sbar-l{font-size:12px;font-weight:700;color:#fff;font-family:'Nunito',sans-serif;letter-spacing:.3px}
 .sbar-r{display:flex;gap:4px;align-items:center}
