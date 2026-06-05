@@ -499,6 +499,23 @@
       ],
       "emoji": "❤️",
       "bg": "#FFF4F0"
+    },
+    {
+      "id": "design_026",
+      "name": "粉钻渐变",
+      "image": "款式图/b4cd5488ff03e325a198.jpg",
+      "detailed_image": "款式图/b4cd5488ff03e325a198.jpg",
+      "price": "¥258",
+      "heat": "1.2w",
+      "rank": 26,
+      "tags": [
+        "约会",
+        "闪耀",
+        "甜美",
+        "韩系"
+      ],
+      "emoji": "💎",
+      "bg": "#FFF0F5"
     }
   ]
 }
