@@ -18,7 +18,10 @@ function go(id, isBack) {
   if (id === 's-bookings') renderBookings();
   if (id === 's-tryon-history') renderTryonHistory();
   if (id === 's-imgtryon-history') renderImageTryonHistory();
-  if (id === 's-gallery') renderGallery(currentFilter);
+  if (id === 's-gallery') {
+    if (typeof syncGalleryFilterChip === 'function') syncGalleryFilterChip(currentFilter);
+    renderGallery(currentFilter);
+  }
   if (id === 's-ops' && typeof renderOpsDashboard === 'function') renderOpsDashboard();
 }
 
