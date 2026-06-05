@@ -94,10 +94,33 @@ async function loadWishlistFromServer() {
   if (typeof updateProfileCounts === 'function') updateProfileCounts();
 }
 
+// 重置个人资料，避免上个账号的本地资料残留；新账号用用户名作昵称
+function _resetProfileForAccount(username) {
+  userProfile = {
+    name: username || '小美同学',
+    avatar: (username ? username.trim().charAt(0).toUpperCase() : '小'),
+    age: 24,
+    skinColorCode: '#F5C6A0',
+    skinToneLabel: '自然色',
+    skinToneSource: 'preset',
+    bio: '美甲爱好者',
+    tryonCount: 0,
+    bookingCount: 0,
+  };
+  try { writeStorage(STORAGE_KEYS.profile, userProfile); } catch (e) {}
+}
+
 // 登录/注册成功后进入 App
-async function enterAppAfterAuth() {
+async function enterAppAfterAuth(opts) {
+  opts = opts || {};
+  // 切换账号先重置资料：新账号用用户名当昵称，登录则清掉旧本地资料等后端覆盖
+  _resetProfileForAccount(opts.isNew ? opts.username : null);
   await migrateLocalWishlistToServer();
   if (typeof bootApp === 'function') await bootApp();
+  // 新账号：把用户名作为昵称同步到后端持久化
+  if (opts.isNew && typeof syncProfileToBackend === 'function') {
+    syncProfileToBackend().catch(e => console.warn('[Auth] 新账号资料同步失败:', e.message));
+  }
   if (typeof go === 'function') go('s-home');
 }
 
@@ -129,9 +152,13 @@ async function submitAuth() {
   btn.disabled = true;
   btn.textContent = _authMode === 'login' ? '登录中…' : '注册中…';
   try {
-    if (_authMode === 'login') await authLogin(username, password);
-    else await authRegister(username, password);
-    await enterAppAfterAuth();
+    if (_authMode === 'login') {
+      const data = await authLogin(username, password);
+      await enterAppAfterAuth({ isNew: false, username: data.username });
+    } else {
+      const data = await authRegister(username, password);
+      await enterAppAfterAuth({ isNew: true, username: data.username });
+    }
   } catch (e) {
     errEl.textContent = e.message || '操作失败';
   } finally {
