@@ -44,17 +44,38 @@
 ### 前置要求
 - Python 3.8+
 - Node.js 14+ (HTTP 服务器)
+- 一个 [Supabase](https://supabase.com) 项目（免费版即可，用于账号 / 收藏 / 我的设计）
+- [ModelScope](https://modelscope.cn) Token（用于 AI 设计与分析）
 - GPU 可选（使用 CPU 也可运行）
 
-### 后端启动
+### ① 配置环境变量
+```bash
+cd backend
+cp .env.example .env
+```
+然后编辑 `backend/.env`，填入：
+- `MODELSCOPE_TOKEN` —— [获取地址](https://modelscope.cn/my/myaccesstoken)
+- `DATABASE_URL` —— Supabase 控制台 → Project Settings → Database → Connection string → URI（选 **Session pooler**）。密码含 `+ & $` 等特殊字符要做 URL 编码。
+
+> ⚠️ `.env` 已被 `.gitignore` 忽略、不会上传，**每个人 clone 后都要自己创建**。
+
+### ② 初始化数据库（首次运行一次）
+在 Supabase 控制台的 **SQL Editor** 里，依次执行这两个建表脚本的内容：
+- `backend/db/schema_accounts.sql` —— 账号表 + 收藏表
+- `backend/db/schema_user_designs.sql` —— 我的设计表
+
+（个人资料表 `user_profiles` 和试戴日志 `try_on_logs` 如未创建，也一并补上即可。）
+
+### ③ 后端启动
 ```bash
 cd backend
 pip install -r requirements.txt
-python main.py
+python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 # 运行在 http://localhost:8000
+# 启动日志出现 [DB] connection pool created 表示数据库连接成功
 ```
 
-### 前端启动
+### ④ 前端启动
 ```bash
 # 项目根目录
 npx http-server -p 5000 --default-file 指上谈兵.html
@@ -63,7 +84,9 @@ npx http-server -p 5000 --default-file 指上谈兵.html
 # 访问 http://localhost:5000
 ```
 
-⚠️ **重要**：不要直接用 `file://` 协议打开 HTML，必须用 HTTP 服务器！
+⚠️ **重要**：
+- 不要直接用 `file://` 协议打开 HTML，必须用 HTTP 服务器！
+- App **需要先注册 / 登录账号**才能进入（账号、收藏、设计都存在 Supabase）。
 
 ---
 

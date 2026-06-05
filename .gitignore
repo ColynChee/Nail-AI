@@ -33,3 +33,13 @@ cmd_*.txt
 .env
 backend/.env
 user_designs/
+新款式图/
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# 系统文件
+.DS_Store
+**/.DS_Store
