@@ -685,10 +685,10 @@
     <div class="wishlist-body">
       <div class="wishlist-grid" id="wishlist-grid"></div>
       <div class="wishlist-empty" id="wishlist-empty">
-        <div class="empty-icon">🤍</div>
-        <h3>还没有收藏哦</h3>
-        <p>去浏览款式库，找到你心仪的款式吧</p>
-        <button class="btn-primary btn-pill" style="margin-top:8px" onclick="go('s-gallery')">去逛逛</button>
+        <div class="empty-icon">🧡</div>
+        <h3>收藏你喜欢的款式</h3>
+        <p>逛款式库时，点击 ♡ 就能收藏<br>下次一键找到心仪款式</p>
+        <button class="btn-primary btn-pill" style="margin-top:12px" onclick="go('s-gallery')">去浏览款式库</button>
       </div>
     </div>
   </div>
@@ -1010,7 +1010,7 @@
       <!-- 颜色（必填） -->
       <div class="design-form-section" id="section-color">
         <div class="design-form-label">颜色 <span class="req">*</span><span class="label-err">请选择颜色</span></div>
-        <div class="chips-wrap" id="chips-color">
+        <div class="chips-wrap" id="chips-color" style="max-height:96px;overflow:hidden;transition:max-height .3s ease">
           <button class="design-chip" data-group="color" data-value="裸粉"><span class="chip-dot" style="background:#E8A6A6"></span>裸粉</button>
           <button class="design-chip" data-group="color" data-value="奶白"><span class="chip-dot" style="background:#FFF0E0"></span>奶白</button>
           <button class="design-chip" data-group="color" data-value="米色"><span class="chip-dot" style="background:#E8DCC8"></span>米色</button>
@@ -1044,6 +1044,7 @@
           <button class="design-chip chip-other" data-group="color" data-value="__other__">其他</button>
         </div>
         <input type="text" id="color-other" class="design-other-input" placeholder="请描述颜色…" style="display:none">
+        <button id="color-expand-btn" onclick="(function(){const w=document.getElementById('chips-color'),b=document.getElementById('color-expand-btn');const expanded=w.style.maxHeight==='none';w.style.maxHeight=expanded?'96px':'none';b.textContent=expanded?'更多颜色 ▾':'收起 ▴';})()" style="margin-top:6px;background:none;border:none;color:var(--orange);font-size:11px;font-weight:700;cursor:pointer;padding:2px 0;">更多颜色 ▾</button>
       </div>
 
       <!-- 风格（必填） -->

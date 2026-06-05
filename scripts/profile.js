@@ -26,7 +26,9 @@ function applyProfile() {
   const ageNode = document.getElementById('profile-age');
   if (ageNode) ageNode.textContent = `${age}`;
   const skinCodeNode = document.getElementById('profile-skin-code');
-  if (skinCodeNode) skinCodeNode.textContent = skinProfile.code;
+  if (skinCodeNode) {
+    skinCodeNode.innerHTML = `<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${skinProfile.code};border:1.5px solid rgba(0,0,0,.1);vertical-align:middle;margin-right:6px;flex-shrink:0"></span>${skinProfile.code}`;
+  }
   const skinLabelNode = document.getElementById('profile-skin-label');
   if (skinLabelNode) skinLabelNode.textContent = skinProfile.label;
   document.getElementById('profile-tryon-count').textContent = userProfile.tryonCount;
