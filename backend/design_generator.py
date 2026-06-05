@@ -11,8 +11,10 @@ import requests
 import numpy as np
 from pathlib import Path
 from typing import Dict, Optional
-from dotenv import load_dotenv
-from openai import OpenAI
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
 
 BACKEND = Path(__file__).resolve().parent
 DESIGNS_GEN_DIR = BACKEND.parent / "designs_generated"
@@ -21,32 +23,28 @@ DESIGNS_GEN_DIR.mkdir(exist_ok=True)
 # 指甲模具路径
 NAIL_TEMPLATE_PATH = BACKEND.parent / "生成指甲模板图片.png"
 
-load_dotenv(BACKEND / ".env")
-load_dotenv(BACKEND.parent / ".env")
+# API 配置
+MODELSCOPE_TOKEN = os.getenv("MODELSCOPE_TOKEN", "")
+if not MODELSCOPE_TOKEN:
+    print("[Design] MODELSCOPE_TOKEN is not set; AI design generation is disabled.")
 
+# OpenAI 兼容客户端（调用 DeepSeek）
+deepseek_client = OpenAI(
+    base_url='https://api-inference.modelscope.cn/v1',
+    api_key=MODELSCOPE_TOKEN,
+) if MODELSCOPE_TOKEN and OpenAI is not None else None
+
+# ModelScope 通用 API
 MODELSCOPE_BASE_URL = "https://api-inference.modelscope.cn/"
+COMMON_HEADERS = {
+    "Authorization": MODELSCOPE_TOKEN,
+    "Content-Type": "application/json",
+}
 
 
-def _get_modelscope_token() -> str:
-    return os.getenv("MODELSCOPE_TOKEN", "")
-
-
-def _build_deepseek_client() -> Optional[OpenAI]:
-    token = _get_modelscope_token()
-    if not token:
-        return None
-    return OpenAI(
-        base_url='https://api-inference.modelscope.cn/v1',
-        api_key=token,
-    )
-
-
-def _build_common_headers() -> Dict[str, str]:
-    token = _get_modelscope_token()
-    return {
-        "Authorization": token,
-        "Content-Type": "application/json",
-    }
+def _require_modelscope_token() -> None:
+    if not MODELSCOPE_TOKEN:
+        raise RuntimeError("MODELSCOPE_TOKEN is required for AI design generation.")
 
 
 def _fallback_prompt(user_prompt: str) -> str:
@@ -96,13 +94,12 @@ def optimize_prompt(user_prompt: str) -> Dict:
 
 直接返回优化后的中文描述（一段话，不需要JSON）"""
 
-    try:
-        deepseek_client = _build_deepseek_client()
-        if deepseek_client is None:
-            print("[DeepSeek] MODELSCOPE_TOKEN missing, using fallback template")
-            fallback = _fallback_prompt(user_prompt)
-            return {"optimized": fallback, "fallback": True}
+    if deepseek_client is None:
+        print("[DeepSeek] Client unavailable; using fallback template")
+        fallback = _fallback_prompt(user_prompt)
+        return {"optimized": fallback, "fallback": True}
 
+    try:
         print(f"[DeepSeek] Calling API with model: deepseek-ai/DeepSeek-V4-Pro")
         response = deepseek_client.chat.completions.create(
             model='deepseek-ai/DeepSeek-V4-Pro',
@@ -164,14 +161,12 @@ def generate_image(prompt: str, max_wait: int = 300) -> Optional[np.ndarray]:
     Returns:
         生成的图片 numpy 数组 (BGR)，或 None 如果失败
     """
-    token = _get_modelscope_token()
-    if not token:
-        raise RuntimeError("请设置环境变量 MODELSCOPE_TOKEN 后再使用美甲设计生成功能")
+    _require_modelscope_token()
 
     # 1) 提交任务
     submit_response = requests.post(
         f"{MODELSCOPE_BASE_URL}v1/images/generations",
-        headers={**_build_common_headers(), "X-ModelScope-Async-Mode": "true"},
+        headers={**COMMON_HEADERS, "X-ModelScope-Async-Mode": "true"},
         json={
             "model": "Qwen/Qwen-Image-2512",
             "prompt": prompt,
@@ -189,7 +184,7 @@ def generate_image(prompt: str, max_wait: int = 300) -> Optional[np.ndarray]:
     while time.time() - start_time < max_wait:
         result = requests.get(
             f"{MODELSCOPE_BASE_URL}v1/tasks/{task_id}",
-            headers={**_build_common_headers(), "X-ModelScope-Task-Type": "image_generation"},
+            headers={**COMMON_HEADERS, "X-ModelScope-Task-Type": "image_generation"},
         )
         result.raise_for_status()
         data = result.json()
@@ -238,8 +233,18 @@ def extract_nails_from_preview(preview_img: np.ndarray) -> list:
     print(f"[Design] 有效轮廓: {len(valid_contours)} 个")
 
     if len(valid_contours) >= 5:
-        # 轮廓方法：按 x 坐标排序，取最大的 5 个
-        nail_contours = sorted(valid_contours, key=lambda c: cv2.boundingRect(c)[0])[-5:]
+        # 如果超过5个轮廓，可能是多排，只取最上排的5个
+        # 策略：取y坐标最小（最靠上）的5个，即只取第一排
+        if len(valid_contours) > 5:
+            # 按每个轮廓的y中心排序，取最靠上的5个
+            def contour_cy(c):
+                _, y, _, h = cv2.boundingRect(c)
+                return y + h / 2
+            top_row = sorted(valid_contours, key=contour_cy)[:5]
+            nail_contours = sorted(top_row, key=lambda c: cv2.boundingRect(c)[0])
+            print(f"[Design] 检测到{len(valid_contours)}个轮廓，取最上排5个")
+        else:
+            nail_contours = sorted(valid_contours, key=lambda c: cv2.boundingRect(c)[0])
         print(f"[Design] 使用轮廓方法提取指甲")
     else:
         print(f"[Design] 轮廓不足，使用等分方法")
@@ -271,10 +276,15 @@ def extract_nails_from_preview(preview_img: np.ndarray) -> list:
                 nail_crop = cv2.resize(nail_crop, (new_w, new_h), interpolation=cv2.INTER_AREA)
 
                 nail_bgra = cv2.cvtColor(nail_crop, cv2.COLOR_BGR2BGRA)
-                # 全不透明（等分方法没有 mask，保留整个裁剪区域）
-                nail_bgra[:,:,3] = 255
+                # 在裁剪区域内用threshold去除白色背景
+                crop_gray = cv2.cvtColor(nail_crop, cv2.COLOR_BGR2GRAY)
+                _, alpha_mask = cv2.threshold(crop_gray, 200, 255, cv2.THRESH_BINARY_INV)
+                kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+                alpha_mask = cv2.morphologyEx(alpha_mask, cv2.MORPH_CLOSE, kernel)
+                alpha_mask = cv2.GaussianBlur(alpha_mask, (3, 3), 0)
+                nail_bgra[:,:,3] = alpha_mask
                 nails.append(nail_bgra)
-                print(f"[Design] 指甲 {fi}: {nail_bgra.shape} (等分法)")
+                print(f"[Design] 指甲 {fi}: {nail_bgra.shape} (等分法+alpha去背景)")
 
         return nails
 
@@ -474,14 +484,6 @@ def generate_design_preview(user_prompt: str, design_id: Optional[str] = None) -
     print(f"[Design] User prompt: {user_prompt}")
 
     try:
-        token = _get_modelscope_token()
-        if not token:
-            return {
-                "success": False,
-                "design_id": design_id,
-                "error": "MODELSCOPE_TOKEN 未配置，无法调用美甲设计生成接口",
-            }
-
         # 1) 优化提示词
         optimized = optimize_prompt(user_prompt)
         optimized_text = optimized.get('optimized', user_prompt)

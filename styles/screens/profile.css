@@ -52,7 +52,7 @@
 .m-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .m-icon svg{width:18px;height:18px;fill:none;stroke-width:1.8;stroke-linecap:round}
 .m-label{flex:1;font-size:14px;font-weight:600;color:var(--text-dark)}
-.m-badge{background:var(--orange);color:#fff;border-radius:var(--rPill);padding:2px 8px;font-size:11px;font-weight:700}
+.m-badge{background:var(--orange);color:#fff;border-radius:var(--rPill);padding:2px 8px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;min-width:22px}
 .m-arrow svg{width:16px;height:16px;fill:none;stroke:var(--text-soft);stroke-width:2;stroke-linecap:round}
 
 /* profile edit */
@@ -69,6 +69,46 @@
 .profile-field input:focus{border-color:var(--orange);background:var(--white)}
 
 .profile-field-hint{font-size:11px;line-height:1.5;color:var(--text-soft);margin-top:-4px;margin-bottom:12px}
+
+/* booking records */
+.booking-body{padding:18px 14px 96px}
+.booking-list{display:flex;flex-direction:column;gap:12px}
+.booking-card{
+  background:var(--white);border:.5px solid var(--border);border-radius:var(--rMd);
+  padding:12px;display:flex;gap:12px;box-shadow:var(--shadow-card);
+}
+.booking-thumb{
+  width:74px;height:74px;border-radius:var(--rSm);overflow:hidden;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:34px;
+}
+.booking-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.booking-info{min-width:0;flex:1;display:flex;flex-direction:column;gap:7px}
+.booking-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.booking-name{
+  color:var(--text-dark);font-size:15px;font-weight:800;line-height:1.25;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.booking-status{
+  background:var(--teal-light);color:var(--teal);border-radius:var(--rPill);
+  padding:3px 8px;font-size:10px;font-weight:800;white-space:nowrap;
+}
+.booking-meta{font-size:11px;color:var(--text-soft);line-height:1.4}
+.booking-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto}
+.booking-price{font-size:14px;font-weight:900;color:var(--orange)}
+.booking-actions{display:flex;gap:6px}
+.booking-actions button{
+  border:1px solid var(--border);background:var(--white);border-radius:var(--rPill);
+  padding:5px 8px;color:var(--text-mid);font-size:11px;font-weight:700;
+  font-family:inherit;cursor:pointer;
+}
+.booking-actions button:first-child{border-color:var(--orange);color:var(--orange)}
+.booking-empty{
+  min-height:420px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;gap:10px;color:var(--text-soft);padding:20px;
+}
+.booking-empty .empty-ico{font-size:36px}
+.booking-empty .empty-title{font-size:17px;font-weight:800;color:var(--text-dark)}
+.booking-empty .empty-sub{font-size:12px;line-height:1.6;max-width:250px;margin-bottom:8px}
 
 /* skin tone matcher sheet */
 .skin-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}

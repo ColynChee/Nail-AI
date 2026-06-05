@@ -68,12 +68,23 @@
         </button>
         <button class="qbtn" onclick="go('s-imgsearch')">
           <div class="qi" style="background:#F5F0FF"><svg viewBox="0 0 24 24" stroke="var(--purple)"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L22 22"/><path d="M8 11h6M11 8v6"/></svg></div>
-          <span>以图搜款</span>
+          <span>以图试戴</span>
         </button>
-        <button class="qbtn" onclick="openSkinSheet()">
-          <div class="qi" style="background:#F0FDFB"><svg viewBox="0 0 24 24" stroke="var(--teal)"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/><path d="M12 8v4l3 3"/></svg></div>
-          <span>肤色匹配</span>
+        <button class="qbtn" onclick="go('s-ops')">
+          <div class="qi" style="background:#F0FDFB"><svg viewBox="0 0 24 24" stroke="var(--teal)"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="5" rx="1"/><rect x="12" y="7" width="3" height="9" rx="1"/><rect x="17" y="9" width="3" height="7" rx="1"/></svg></div>
+          <span>智能运营</span>
         </button>
+      </div>
+
+      <div class="ops-entry" onclick="go('s-ops')">
+        <div class="ops-entry-icon">
+          <svg viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7 15l3-3 3 2 5-7"/><path d="M17 7h3v3"/></svg>
+        </div>
+        <div class="ops-entry-main">
+          <div class="ops-entry-title">智能运营工作台</div>
+          <div class="ops-entry-sub" id="ops-entry-sub">同步平台热度，生成今日主推与运营动作</div>
+        </div>
+        <div class="ops-entry-arrow">›</div>
       </div>
 
       <!-- trending -->
@@ -108,6 +119,135 @@
     </div>
     <button class="bni" onclick="go('s-design-gen')">
       <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg><span>AI设计</span>
+    </button>
+    <button class="bni" onclick="go('s-profile')">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>我的</span>
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+  ②A OPS DASHBOARD
+════════════════════════════════ -->
+<div class="screen" id="s-ops">
+  <div class="sbar"><span class="sbar-l">9:41</span><div class="sbar-r"><span>●●●</span><span>WiFi</span><span>98%</span></div></div>
+  <div class="topnav">
+    <button class="icon-btn icon-btn-ghost" onclick="go('s-home')">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="nav-title">智能运营</span>
+    <button class="icon-btn icon-btn-ghost" onclick="refreshOpsDashboard(true)">
+      <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+    </button>
+  </div>
+  <div class="scroll-body">
+    <div class="ops-body">
+      <section class="ops-hero">
+        <div>
+          <div class="ops-kicker">B站公开视频 · 实时热度</div>
+          <h2>今日运营驾驶舱</h2>
+          <p id="ops-hero-copy">根据平台热度、试戴行为和款式库存，生成可执行的推荐策略。</p>
+        </div>
+        <div class="ops-score">
+          <span id="ops-score-num">--</span>
+          <small>运营指数</small>
+        </div>
+      </section>
+
+      <div class="ops-updated" id="ops-updated">正在同步平台数据...</div>
+
+      <section class="ops-kpis" id="ops-kpis"></section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <h3>运营数据图表</h3>
+            <p>用热度柱状图和互动率折线图观察款式表现变化。</p>
+          </div>
+        </div>
+        <div class="ops-chart-card">
+          <canvas id="ops-trend-chart"></canvas>
+          <div class="ops-chart-empty" id="ops-chart-empty">正在加载运营图表...</div>
+        </div>
+      </section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <h3>流行趋势洞察</h3>
+            <p>从平台热度、互动率和收藏意向中提炼正在上升的风格方向。</p>
+          </div>
+        </div>
+        <div class="ops-trends" id="ops-trend-insights"></div>
+      </section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <h3>今日主推策略</h3>
+            <p>把热门款、试戴入口和内容投放连成一条转化链路。</p>
+          </div>
+          <button class="ops-mini-btn" onclick="refreshOpsDashboard(true)">刷新</button>
+        </div>
+        <div class="ops-strategy" id="ops-strategy"></div>
+      </section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <h3>款式机会矩阵</h3>
+            <p>按实时热度、互动意愿和上新潜力给出运营动作。</p>
+          </div>
+        </div>
+        <div class="ops-list" id="ops-priority-list"></div>
+      </section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <h3>风险与迭代</h3>
+            <p>识别热度偏低或内容表达不足的款式，安排补图和话术优化。</p>
+          </div>
+        </div>
+        <div class="ops-list compact" id="ops-risk-list"></div>
+      </section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <h3>AI 运营方案</h3>
+            <p>给店长和运营同学看的今日执行清单。</p>
+          </div>
+        </div>
+        <div class="ops-plan" id="ops-plan"></div>
+      </section>
+
+      <section class="ops-section">
+        <div class="ops-section-head">
+          <div>
+            <h3>AI 运营助手</h3>
+            <p>接入 ModelScope 的运营分析输出，后续可交给 OpenClaw 编排更多执行工具。</p>
+          </div>
+        </div>
+        <div class="ops-assistant" id="ops-assistant"></div>
+      </section>
+    </div>
+  </div>
+  <div class="bnav">
+    <button class="bni" onclick="go('s-home')">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>首页</span>
+    </button>
+    <button class="bni" onclick="go('s-gallery')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg><span>款式库</span>
+    </button>
+    <div class="bni-cam">
+      <div class="fab" onclick="go('s-tryon')">
+        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </div>
+      <span>试戴</span>
+    </div>
+    <button class="bni on" onclick="go('s-ops')">
+      <svg viewBox="0 0 24 24"><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="5" rx="1"/><rect x="12" y="7" width="3" height="9" rx="1"/><rect x="17" y="9" width="3" height="7" rx="1"/></svg><span>运营</span>
     </button>
     <button class="bni" onclick="go('s-profile')">
       <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>我的</span>
@@ -152,7 +292,7 @@
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/><path d="M8 11h6M11 8v6"/></svg>
       </div>
       <div class="isb-text">
-        <div class="isb-title">以图搜款 ✨</div>
+        <div class="isb-title">以图试戴 ✨</div>
         <div class="isb-sub">上传参考图，AI 识别匹配相似款式</div>
       </div>
       <div class="isb-arrow">›</div>
@@ -185,7 +325,7 @@
 </div>
 
 <!-- ════════════════════════════════
-  ③ IMAGE SEARCH (以图搜款)
+  ③ IMAGE SEARCH (以图试戴)
 ════════════════════════════════ -->
 <div class="screen" id="s-imgsearch">
   <div class="sbar"><span class="sbar-l">9:41</span><div class="sbar-r"><span>●●●</span><span>WiFi</span><span>98%</span></div></div>
@@ -193,7 +333,7 @@
     <button class="icon-btn icon-btn-ghost" onclick="go('s-gallery');resetImgSearch()">
       <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
     </button>
-    <span class="nav-title">以图搜款</span>
+    <span class="nav-title">以图试戴</span>
     <div style="width:34px"></div>
   </div>
   <div class="scroll-body">
@@ -201,19 +341,8 @@
 
       <!-- Tab switch -->
       <div style="display:flex;gap:12px;margin-bottom:20px;padding:0 16px">
-        <button class="tab-btn on" onclick="switchImgTab('search')" id="tab-search">以图搜款</button>
+        <button class="tab-btn on" onclick="switchImgTab('inspire')" id="tab-inspire">灵感试戴</button>
         <button class="tab-btn" onclick="switchImgTab('detect')" id="tab-detect">检测美甲</button>
-      </div>
-
-      <!-- Upload area - Search -->
-      <div id="section-search" class="isearch-upload" id="isearch-upload" onclick="document.getElementById('isearch-input').click()">
-        <div class="isearch-upload-icon">
-          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-        </div>
-        <div class="isearch-upload-title">上传参考图</div>
-        <div class="isearch-upload-sub">从相册选择你喜欢的美甲照片<br>支持 JPG / PNG / HEIC</div>
-        <button class="isearch-upload-btn">选择图片</button>
-        <input type="file" id="isearch-input" accept="image/*" onchange="runImgSearch()" style="display:none">
       </div>
 
       <!-- Upload area - Detect -->
@@ -230,18 +359,39 @@
       </div>
 
 
-      <!-- Example thumbnails -->
-      <div id="isearch-examples">
-        <div class="examples-label">或试试这些风格 👇</div>
-        <div class="example-chips">
-          <div class="ex-chip" onclick="simulateImgSearch('🌸','粉调花卉系','89')"><span class="ex-emoji">🌸</span>花卉系</div>
-          <div class="ex-chip" onclick="simulateImgSearch('✨','金属闪光系','92')"><span class="ex-emoji">✨</span>金属闪</div>
-          <div class="ex-chip" onclick="simulateImgSearch('🤍','简约奶白系','95')"><span class="ex-emoji">🤍</span>极简白</div>
-          <div class="ex-chip" onclick="simulateImgSearch('🌈','彩虹渐变系','87')"><span class="ex-emoji">🌈</span>渐变色</div>
-          <div class="ex-chip" onclick="simulateImgSearch('💅','法式经典系','91')"><span class="ex-emoji">💅</span>法式</div>
-          <div class="ex-chip" onclick="simulateImgSearch('🍓','红调甜蜜系','88')"><span class="ex-emoji">🍓</span>甜蜜红</div>
+      <!-- 灵感试戴区块 -->
+      <div id="section-inspire" style="display:block">
+        <div class="isearch-upload" onclick="document.getElementById('inspiration-file').click()">
+          <div class="isearch-upload-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          </div>
+          <div class="isearch-upload-title">上传灵感图</div>
+          <div class="isearch-upload-sub">AI自动去除手部，生成标准模具<br>直接用于你的手部虚拟试戴</div>
+          <button class="isearch-upload-btn">选择灵感图</button>
+          <input type="file" id="inspiration-file" accept="image/*" style="display:none" onchange="handleInspirationUpload(event)">
+        </div>
+
+        <!-- 生成中状态 -->
+        <div id="inspiration-loading" style="display:none;padding:16px;background:var(--warm-gray);border-radius:var(--rMd);text-align:center;margin-top:12px">
+          <div style="font-size:13px;color:var(--text-dark);margin-bottom:8px">✨ AI正在分析设计并生成模具...</div>
+          <div style="font-size:11px;color:var(--text-soft);margin-bottom:8px" id="inspiration-status">分析灵感图中...</div>
+          <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+            <div id="inspiration-progress-bar" style="height:100%;background:var(--orange);width:0%;transition:width 0.5s ease;border-radius:2px"></div>
+          </div>
+        </div>
+
+        <!-- 生成结果预览 -->
+        <div id="inspiration-result" style="display:none;margin-top:12px;padding:12px;background:var(--warm-gray);border-radius:var(--rMd)">
+          <div style="font-size:12px;color:var(--text-soft);margin-bottom:8px">✅ 模具生成成功！</div>
+          <img id="inspiration-template-preview" style="width:100%;border-radius:var(--rSm);margin-bottom:8px" src="">
+          <div style="font-size:11px;color:var(--text-soft);margin-bottom:10px" id="inspiration-design-desc"></div>
+          <button onclick="startInspirationTryon()"
+            style="width:100%;padding:12px;border:none;background:var(--orange);border-radius:var(--rMd);font-size:13px;color:white;cursor:pointer;font-family:inherit;font-weight:600">
+            用这个款式开始试戴 →
+          </button>
         </div>
       </div>
+
 
       <!-- Loading -->
       <div class="isearch-spinner" id="isearch-spinner">
@@ -350,33 +500,14 @@
       </div>
       <div class="div"></div>
       <div class="detail-section-title" style="font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:10px">数据表现</div>
-      <div class="stats-row">
-        <div class="stat-box"><div class="stat-num">8.2k</div><div class="stat-lbl">试戴次数</div></div>
-        <div class="stat-box"><div class="stat-num">96%</div><div class="stat-lbl">好评率</div></div>
-        <div class="stat-box"><div class="stat-num">#1</div><div class="stat-lbl">本周排名</div></div>
+      <div class="stats-row" id="d-stats-row">
+        <div class="stat-box"><div class="stat-num" id="d-stat-tryons">8.2k</div><div class="stat-lbl" id="d-stat-tryons-lbl">试戴次数</div></div>
+        <div class="stat-box"><div class="stat-num" id="d-stat-rate">--</div><div class="stat-lbl" id="d-stat-rate-lbl">互动率</div></div>
+        <div class="stat-box"><div class="stat-num" id="d-stat-rank">#1</div><div class="stat-lbl" id="d-stat-rank-lbl">本周排名</div></div>
       </div>
       <div class="div"></div>
-      <div class="detail-section-title" style="font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:10px">选择颜色</div>
-      <div class="color-row">
-        <div class="c-dot on" style="background:#FFB3C6" onclick="pickColor(this)"></div>
-        <div class="c-dot" style="background:#FFCBA4" onclick="pickColor(this)"></div>
-        <div class="c-dot" style="background:#C9B8E8" onclick="pickColor(this)"></div>
-        <div class="c-dot" style="background:#FFEAA7" onclick="pickColor(this)"></div>
-        <div class="c-dot" style="background:#B2F0E8" onclick="pickColor(this)"></div>
-      </div>
-      <div class="div"></div>
-      <div class="detail-section-title" style="font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:10px">附近门店</div>
-      <div class="salon-card">
-        <div class="salon-icon"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
-        <div>
-          <div class="salon-name">甲美旗舰店 · 朝阳店</div>
-          <div class="salon-dist">距离 0.8km · 营业中</div>
-        </div>
-        <div class="salon-rating">
-          <div class="rating-num">4.9</div>
-          <div class="rating-lbl">⭐ 好评</div>
-        </div>
-      </div>
+      <div class="detail-section-title" style="font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:10px">平台相关视频</div>
+      <div class="related-posts" id="d-related-posts"></div>
       <div class="div"></div>
       <!-- 详细设计图 -->
       <div id="d-detailed-img-box" style="display:none;padding:12px 16px;background:var(--bg-light)">
@@ -385,12 +516,12 @@
       </div>
       <div class="div"></div>
       <div class="detail-section-title" style="font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:8px">款式介绍</div>
-      <p class="detail-desc">以温柔奶油质感为底，叠加细腻樱花元素，春日感十足。适合搭配浅色或碎花系穿搭，自然光下效果尤为出众。<br><br>适合肤色：暖白、自然色、小麦色。<br>适合手型：偏修长或普通均可。<br><br>工期约 90 分钟，建议提前预约。</p>
+      <p class="detail-desc" id="d-desc">以温柔奶油质感为底，叠加细腻樱花元素，春日感十足。适合搭配浅色或碎花系穿搭，自然光下效果尤为出众。<br><br>适合肤色：暖白、自然色、小麦色。<br>适合手型：偏修长或普通均可。<br><br>工期约 90 分钟，建议提前预约。</p>
     </div>
   </div>
   <div class="detail-cta">
     <button class="btn-outline" style="flex:1" onclick="setTryonStyle(currentDetail.emoji,currentDetail.name,currentDetail.price,currentDetail.bg,currentDetail.image,currentDetail.designId);go('s-tryon')">AI 试戴</button>
-    <button class="btn-primary" style="flex:2" onclick="showToast('预约成功！商家将在1小时内联系你 ✓')">立即预约</button>
+    <button class="btn-primary" style="flex:2" onclick="bookCurrentDetail()">立即预约</button>
   </div>
 </div>
 
@@ -440,14 +571,26 @@
         <div class="tip"><div class="tip-dot"></div><span>指甲清洁，卸除旧甲油效果更佳</span></div>
       </div>
 
-      <!-- also: search by nail image shortcut -->
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px 14px;background:var(--purple-light);border-radius:var(--rMd);border:.5px solid var(--border);cursor:pointer" id="tryon-tips" onclick="go('s-imgsearch')">
-        <span style="font-size:20px">🔍</span>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--text-dark)">没有喜欢的款式？</div>
-          <div style="font-size:11px;color:var(--text-soft);margin-top:1px">上传参考图，以图搜款</div>
+      <!-- nail detection preview -->
+      <div class="tryon-detection-preview" id="tryon-detection-preview" style="display:none;margin-bottom:16px;padding:12px;background:var(--bg);border-radius:var(--rMd);border:1px solid var(--border)">
+        <div style="font-size:12px;color:var(--text-soft);margin-bottom:8px">🔍 指甲检测预览</div>
+        <div style="position:relative;width:100%;max-width:300px;margin:0 auto;border:1px solid var(--border);border-radius:6px;overflow:hidden">
+          <img id="tryon-preview-image" src="" style="width:100%;display:block" alt="">
+          <canvas id="tryon-detection-canvas" style="position:absolute;top:0;left:0;width:100%"></canvas>
         </div>
-        <span style="margin-left:auto;color:var(--text-soft);font-size:16px">›</span>
+        <div style="font-size:13px;color:var(--text-mid);margin-top:8px;text-align:center;min-height:24px;font-weight:500" id="tryon-detection-message">
+          <span id="tryon-progress-message">准备检测...</span>
+        </div>
+        <div style="margin-top:8px;width:100%">
+          <div style="width:100%;height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+            <div id="tryon-progress-bar" style="width:0%;height:100%;background:var(--orange);transition:width 0.3s ease;border-radius:2px"></div>
+          </div>
+          <div style="font-size:10px;color:var(--text-soft);margin-top:4px;text-align:right" id="tryon-progress-percent">0%</div>
+        </div>
+        <div id="tryon-detection-buttons" style="display:none;gap:8px;margin-top:10px;justify-content:center">
+          <button class="btn-primary" style="flex:1;padding:10px;font-size:12px" onclick="confirmNailDetection()">确认 ✓</button>
+          <button style="flex:1;padding:10px;border:1.5px solid var(--border);background:var(--white);border-radius:var(--rMd);font-size:12px;cursor:pointer;font-family:inherit;color:var(--text-mid)" onclick="resetTryon()">重新选择</button>
+        </div>
       </div>
 
       <!-- processing -->
@@ -466,12 +609,10 @@
         <div class="result-preview">
           <div class="preview-emoji" id="tryon-result-emoji">💅</div>
           <div style="font-size:13px;font-weight:700;color:var(--text-dark)" id="tryon-result-label">效果预览 · 樱花奶油</div>
-          <div class="result-before-after" style="margin-top:10px">
-            <div class="ba-box"><div class="ba-emoji">🤚</div><div class="ba-label">原始手型</div></div>
-            <div style="display:flex;align-items:center;font-size:18px;color:var(--text-soft)">→</div>
-            <div class="ba-box" id="tryon-ba-emoji"><div class="ba-emoji">💅</div><div class="ba-label">试戴效果</div></div>
-          </div>
         </div>
+
+        <!-- 增强按钮 -->
+        <button id="tryon-enhance-btn" style="width:100%;padding:12px;margin-top:12px;border:1.5px solid var(--orange);background:transparent;border-radius:var(--rMd);font-size:13px;color:var(--orange);cursor:pointer;font-family:inherit;font-weight:600" onclick="enhanceTryonEffect()">✨ 试戴效果不满意？增强</button>
 
         <div class="ai-analysis">
           <div class="ai-analysis-header">
@@ -479,10 +620,21 @@
           </div>
           <div class="match-pct-row">
             <div class="match-metric"><div class="mm-val" id="tryon-match-score">96%</div><div class="mm-label">肤色匹配度</div></div>
-            <div class="match-metric"><div class="mm-val">A+</div><div class="mm-label">手型评级</div></div>
-            <div class="match-metric"><div class="mm-val">#1</div><div class="mm-label">本周热度</div></div>
+            <div class="match-metric"><div class="mm-val" id="tryon-skin-tone">—</div><div class="mm-label">肤色</div></div>
+            <div class="match-metric"><div class="mm-val" id="tryon-hand-rating">A+</div><div class="mm-label">手型评级</div></div>
           </div>
           <div class="ai-text" id="tryon-ai-text">你的手型偏修长，搭配这款粉调奶油色会显得气质温柔。偏暖白肤色与此款匹配度极高，特别推荐尝试！适合场景：约会、日常通勤、春日踏青。</div>
+
+          <!-- 色系和风格推荐 -->
+          <div style="margin-top:12px;padding:10px;background:var(--warm-gray);border-radius:var(--rSm)">
+            <div style="font-size:11px;color:var(--text-soft);margin-bottom:6px">✨ 为你的肤色推荐</div>
+            <div id="tryon-color-style-recommendations">
+              <div style="font-size:11px;color:var(--text-mid);line-height:1.6">
+                <div style="margin-bottom:4px"><strong style="color:var(--text-dark)">推荐色系：</strong><span id="rec-primary">—</span></div>
+                <div style="margin-bottom:4px"><strong style="color:var(--text-dark)">推荐风格：</strong><span id="rec-styles">—</span></div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="result-actions">
@@ -494,7 +646,7 @@
             <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             分享
           </button>
-          <button class="ra-btn ra-book" onclick="showToast('预约成功！商家将在1小时内联系你 ✓')">立即预约</button>
+          <button class="ra-btn ra-book" onclick="bookCurrentTryon()">立即预约</button>
         </div>
 
         <button style="width:100%;padding:12px;border:1.5px solid var(--border);border-radius:var(--rMd);background:var(--white);font-size:13px;color:var(--text-mid);cursor:pointer;font-family:inherit;font-weight:600" onclick="resetTryon()">重新上传照片</button>
@@ -570,7 +722,7 @@
   <div class="p-stats">
     <div class="pstat"><div class="pstat-num" id="profile-tryon-count">12</div><div class="pstat-label">试戴记录</div></div>
     <div class="pstat"><div class="pstat-num" id="profile-wl-count">0</div><div class="pstat-label">收藏款式</div></div>
-    <div class="pstat"><div class="pstat-num" id="profile-booking-count">3</div><div class="pstat-label">已预约</div></div>
+    <div class="pstat"><div class="pstat-num" id="profile-booking-count">0</div><div class="pstat-label">已预约</div></div>
   </div>
   <div class="p-meta">
     <div class="p-meta-card">
@@ -591,19 +743,22 @@
         <span class="m-badge" id="profile-wl-badge">0</span>
         <div class="m-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
       </div>
-      <div class="menu-item" onclick="showToast('预约记录页面即将上线…')">
+      <div class="menu-item" onclick="openBookingRecords()">
         <div class="m-icon" style="background:var(--orange-light)"><svg viewBox="0 0 24 24" style="stroke:var(--orange)"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
         <div class="m-label">预约记录</div>
+        <span class="m-badge" id="profile-booking-badge" style="display:none">0</span>
         <div class="m-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
       </div>
-      <div class="menu-item" onclick="go('s-imgsearch')">
+      <div class="menu-item" onclick="openImageTryonHistory()">
         <div class="m-icon" style="background:var(--purple-light)"><svg viewBox="0 0 24 24" style="stroke:var(--purple)"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/><path d="M8 11h6M11 8v6"/></svg></div>
-        <div class="m-label">以图搜款历史</div>
+        <div class="m-label">以图试戴历史</div>
+        <span class="m-badge" id="profile-imgtryon-badge" style="display:none">0</span>
         <div class="m-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
       </div>
-      <div class="menu-item" onclick="go('s-tryon')">
+      <div class="menu-item" onclick="openTryonHistory()">
         <div class="m-icon" style="background:var(--teal-light)"><svg viewBox="0 0 24 24" style="stroke:var(--teal)"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
         <div class="m-label">试戴历史</div>
+        <span class="m-badge" id="profile-tryon-badge" style="display:none">0</span>
         <div class="m-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
       </div>
       <div class="menu-item" onclick="openSkinSheet()">
@@ -635,6 +790,135 @@
       <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg><span>AI设计</span>
     </button>
     <button class="bni on">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>我的</span>
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+  ⑧ BOOKING RECORDS
+════════════════════════════════ -->
+<div class="screen" id="s-bookings">
+  <div class="sbar"><span class="sbar-l">9:41</span><div class="sbar-r"><span>●●●</span><span>WiFi</span><span>98%</span></div></div>
+  <div class="topnav">
+    <button class="icon-btn icon-btn-ghost" onclick="go('s-profile')">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="nav-title">预约记录</span>
+    <div style="width:34px"></div>
+  </div>
+  <div class="scroll-body">
+    <div class="booking-body">
+      <div class="booking-list" id="booking-list"></div>
+      <div class="booking-empty" id="booking-empty">
+        <div class="empty-ico">📅</div>
+        <div class="empty-title">还没有预约</div>
+        <div class="empty-sub">在款式详情或 AI 试戴结果里点击立即预约，记录会保存在这里。</div>
+        <button class="btn-primary" onclick="go('s-gallery')">去选择款式</button>
+      </div>
+    </div>
+  </div>
+  <div class="bnav">
+    <button class="bni" onclick="go('s-home')">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>首页</span>
+    </button>
+    <button class="bni" onclick="go('s-gallery')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg><span>款式库</span>
+    </button>
+    <div class="bni-cam">
+      <div class="fab" onclick="go('s-tryon')">
+        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </div>
+      <span>试戴</span>
+    </div>
+    <button class="bni" onclick="go('s-design-gen')">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg><span>AI设计</span>
+    </button>
+    <button class="bni on" onclick="go('s-profile')">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>我的</span>
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+  ⑨ IMAGE TRY-ON HISTORY
+════════════════════════════════ -->
+<div class="screen" id="s-imgtryon-history">
+  <div class="sbar"><span class="sbar-l">9:41</span><div class="sbar-r"><span>●●●</span><span>WiFi</span><span>98%</span></div></div>
+  <div class="topnav">
+    <button class="icon-btn icon-btn-ghost" onclick="go('s-profile')">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="nav-title">以图试戴历史</span>
+    <button class="icon-btn icon-btn-ghost" onclick="go('s-imgsearch')">
+      <svg viewBox="0 0 24 24"><path d="M8 12h8"/><path d="M12 8v8"/><circle cx="12" cy="12" r="9"/></svg>
+    </button>
+  </div>
+  <div class="scroll-body">
+    <div class="booking-body">
+      <div class="booking-list" id="imgtryon-history-list"></div>
+      <div class="booking-empty" id="imgtryon-history-empty"></div>
+    </div>
+  </div>
+  <div class="bnav">
+    <button class="bni" onclick="go('s-home')">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>首页</span>
+    </button>
+    <button class="bni" onclick="go('s-gallery')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg><span>款式库</span>
+    </button>
+    <div class="bni-cam">
+      <div class="fab" onclick="go('s-tryon')">
+        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </div>
+      <span>试戴</span>
+    </div>
+    <button class="bni" onclick="go('s-design-gen')">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg><span>AI设计</span>
+    </button>
+    <button class="bni on" onclick="go('s-profile')">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>我的</span>
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+  ⑩ TRY-ON HISTORY
+════════════════════════════════ -->
+<div class="screen" id="s-tryon-history">
+  <div class="sbar"><span class="sbar-l">9:41</span><div class="sbar-r"><span>●●●</span><span>WiFi</span><span>98%</span></div></div>
+  <div class="topnav">
+    <button class="icon-btn icon-btn-ghost" onclick="go('s-profile')">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="nav-title">试戴历史</span>
+    <button class="icon-btn icon-btn-ghost" onclick="go('s-tryon')">
+      <svg viewBox="0 0 24 24"><path d="M8 12h8"/><path d="M12 8v8"/><circle cx="12" cy="12" r="9"/></svg>
+    </button>
+  </div>
+  <div class="scroll-body">
+    <div class="booking-body">
+      <div class="booking-list" id="tryon-history-list"></div>
+      <div class="booking-empty" id="tryon-history-empty"></div>
+    </div>
+  </div>
+  <div class="bnav">
+    <button class="bni" onclick="go('s-home')">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span>首页</span>
+    </button>
+    <button class="bni" onclick="go('s-gallery')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg><span>款式库</span>
+    </button>
+    <div class="bni-cam">
+      <div class="fab" onclick="go('s-tryon')">
+        <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </div>
+      <span>试戴</span>
+    </div>
+    <button class="bni" onclick="go('s-design-gen')">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg><span>AI设计</span>
+    </button>
+    <button class="bni on" onclick="go('s-profile')">
       <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>我的</span>
     </button>
   </div>
@@ -695,11 +979,86 @@
       <div style="font-size:28px;font-weight:800;color:var(--text-dark);margin-bottom:4px">✨ AI 为你设计</div>
       <div style="font-size:14px;color:var(--text-soft);margin-bottom:24px">用文字描述你心目中的美甲效果</div>
 
-      <!-- 输入框 -->
-      <textarea id="design-prompt" class="design-input" placeholder="例如：短杏仁形、柔粉紫、铬色微型法式&#10;或者：棕色渐变、几何图案、复古风格" style="min-height:100px;resize:none"></textarea>
+      <!-- 指甲形状（必填） -->
+      <div class="design-form-section" id="section-shape">
+        <div class="design-form-label">指甲形状 <span class="req">*</span><span class="label-err">请选择指甲形状</span></div>
+        <div class="chips-wrap" id="chips-shape">
+          <button class="design-chip" data-group="shape" data-value="圆形">圆形</button>
+          <button class="design-chip" data-group="shape" data-value="椭圆形">椭圆形</button>
+          <button class="design-chip" data-group="shape" data-value="方形">方形</button>
+          <button class="design-chip" data-group="shape" data-value="杏仁形">杏仁形</button>
+          <button class="design-chip" data-group="shape" data-value="尖形">尖形</button>
+          <button class="design-chip chip-other" data-group="shape" data-value="__other__">其他</button>
+        </div>
+        <input type="text" id="shape-other" class="design-other-input" placeholder="请输入指甲形状…" style="display:none">
+      </div>
+
+      <!-- 颜色（必填） -->
+      <div class="design-form-section" id="section-color">
+        <div class="design-form-label">颜色 <span class="req">*</span><span class="label-err">请选择颜色</span></div>
+        <div class="chips-wrap" id="chips-color">
+          <button class="design-chip" data-group="color" data-value="裸粉"><span class="chip-dot" style="background:#E8A6A6"></span>裸粉</button>
+          <button class="design-chip" data-group="color" data-value="奶白"><span class="chip-dot" style="background:#FFF0E0"></span>奶白</button>
+          <button class="design-chip" data-group="color" data-value="米色"><span class="chip-dot" style="background:#E8DCC8"></span>米色</button>
+          <button class="design-chip" data-group="color" data-value="玫瑰粉"><span class="chip-dot" style="background:#F4A0B4"></span>玫瑰粉</button>
+          <button class="design-chip" data-group="color" data-value="珊瑚粉"><span class="chip-dot" style="background:#FF8C6E"></span>珊瑚粉</button>
+          <button class="design-chip" data-group="color" data-value="正红"><span class="chip-dot" style="background:#E0231C"></span>正红</button>
+          <button class="design-chip" data-group="color" data-value="酒红"><span class="chip-dot" style="background:#8B1A1A"></span>酒红</button>
+          <button class="design-chip" data-group="color" data-value="砖红"><span class="chip-dot" style="background:#C0392B"></span>砖红</button>
+          <button class="design-chip" data-group="color" data-value="橙色"><span class="chip-dot" style="background:#FF8C00"></span>橙色</button>
+          <button class="design-chip" data-group="color" data-value="橘红"><span class="chip-dot" style="background:#FF5A1F"></span>橘红</button>
+          <button class="design-chip" data-group="color" data-value="柠檬黄"><span class="chip-dot" style="background:#FFE135"></span>柠檬黄</button>
+          <button class="design-chip" data-group="color" data-value="金色"><span class="chip-dot" style="background:#C9A84C"></span>金色</button>
+          <button class="design-chip" data-group="color" data-value="香槟色"><span class="chip-dot" style="background:#F7E7CE"></span>香槟色</button>
+          <button class="design-chip" data-group="color" data-value="橄榄绿"><span class="chip-dot" style="background:#7A8C3A"></span>橄榄绿</button>
+          <button class="design-chip" data-group="color" data-value="薄荷绿"><span class="chip-dot" style="background:#98E0C8"></span>薄荷绿</button>
+          <button class="design-chip" data-group="color" data-value="墨绿"><span class="chip-dot" style="background:#1E4D2B"></span>墨绿</button>
+          <button class="design-chip" data-group="color" data-value="天蓝"><span class="chip-dot" style="background:#87CEEB"></span>天蓝</button>
+          <button class="design-chip" data-group="color" data-value="宝蓝"><span class="chip-dot" style="background:#1E40AF"></span>宝蓝</button>
+          <button class="design-chip" data-group="color" data-value="薰衣草紫"><span class="chip-dot" style="background:#C8A8E0"></span>薰衣草紫</button>
+          <button class="design-chip" data-group="color" data-value="紫色"><span class="chip-dot" style="background:#9B59B6"></span>紫色</button>
+          <button class="design-chip" data-group="color" data-value="深紫"><span class="chip-dot" style="background:#4A235A"></span>深紫</button>
+          <button class="design-chip" data-group="color" data-value="黑色"><span class="chip-dot" style="background:#1A1A1A"></span>黑色</button>
+          <button class="design-chip" data-group="color" data-value="白色"><span class="chip-dot" style="background:#F0F0F0;border-color:#ccc"></span>白色</button>
+          <button class="design-chip" data-group="color" data-value="灰色"><span class="chip-dot" style="background:#9E9E9E"></span>灰色</button>
+          <button class="design-chip" data-group="color" data-value="银色"><span class="chip-dot" style="background:#C0C0C0"></span>银色</button>
+          <button class="design-chip" data-group="color" data-value="玫瑰金"><span class="chip-dot" style="background:#E8B4A8"></span>玫瑰金</button>
+          <button class="design-chip" data-group="color" data-value="渐变粉橙"><span class="chip-dot" style="background:linear-gradient(135deg,#F4A0B4,#FF8C00)"></span>渐变粉橙</button>
+          <button class="design-chip" data-group="color" data-value="渐变紫蓝"><span class="chip-dot" style="background:linear-gradient(135deg,#9B59B6,#1E40AF)"></span>渐变紫蓝</button>
+          <button class="design-chip" data-group="color" data-value="渐变裸白"><span class="chip-dot" style="background:linear-gradient(135deg,#E8A6A6,#FFF0E0)"></span>渐变裸白</button>
+          <button class="design-chip" data-group="color" data-value="多色混搭"><span class="chip-dot" style="background:linear-gradient(135deg,#FF5A1F,#FFE135,#98E0C8,#9B59B6)"></span>多色混搭</button>
+          <button class="design-chip chip-other" data-group="color" data-value="__other__">其他</button>
+        </div>
+        <input type="text" id="color-other" class="design-other-input" placeholder="请描述颜色…" style="display:none">
+      </div>
+
+      <!-- 风格（必填） -->
+      <div class="design-form-section" id="section-style">
+        <div class="design-form-label">风格 <span class="req">*</span><span class="label-err">请选择风格</span></div>
+        <div class="chips-wrap" id="chips-style">
+          <button class="design-chip" data-group="style" data-value="温柔">温柔</button>
+          <button class="design-chip" data-group="style" data-value="复古">复古</button>
+          <button class="design-chip" data-group="style" data-value="奢华">奢华</button>
+          <button class="design-chip" data-group="style" data-value="简约">简约</button>
+          <button class="design-chip" data-group="style" data-value="甜美可爱">甜美可爱</button>
+          <button class="design-chip" data-group="style" data-value="街头潮流">街头潮流</button>
+          <button class="design-chip" data-group="style" data-value="法式优雅">法式优雅</button>
+          <button class="design-chip" data-group="style" data-value="日系清新">日系清新</button>
+          <button class="design-chip" data-group="style" data-value="暗黑系">暗黑系</button>
+          <button class="design-chip" data-group="style" data-value="波西米亚">波西米亚</button>
+          <button class="design-chip chip-other" data-group="style" data-value="__other__">其他</button>
+        </div>
+        <input type="text" id="style-other" class="design-other-input" placeholder="请描述风格…" style="display:none">
+      </div>
+
+      <!-- 备注（选填） -->
+      <div class="design-form-section">
+        <div class="design-form-label">其他想法 <span style="font-size:11px;color:var(--text-soft);font-weight:400">（选填）</span></div>
+        <textarea id="design-notes" class="design-input" placeholder="如：带闪粉、加法式线条、短款…" style="min-height:64px;resize:none"></textarea>
+      </div>
 
       <!-- 生成按钮 -->
-      <button class="btn-primary" style="width:100%;margin-top:16px" onclick="generateDesign()">
+      <button class="btn-primary" style="width:100%;margin-top:4px" onclick="generateDesign()">
         <span id="gen-btn-text">生成设计 →</span>
       </button>
 
@@ -805,8 +1164,10 @@
 <script src="scripts/xhs-config.js"></script>
 <script src="scripts/xhs-keyword-heat.js"></script>
 <script src="scripts/trending.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="scripts/ops.js"></script>
 <script src="scripts/gallery.js"></script>
-<script src="scripts/detail.js"></script>
+<script src="scripts/detail.js?v=interaction-rate-20260603"></script>
 <script src="scripts/try-on.js"></script>
 <script src="scripts/image-search.js"></script>
 <script src="scripts/design-gen.js"></script>
@@ -820,3 +1181,4 @@
 <script src="scripts/init.js"></script>
 </body>
 </html>
+

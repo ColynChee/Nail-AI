@@ -1,32 +1,31 @@
-/* ══════════════════════════════════
-   小红书关键词热度表（学生版）
+/* Douyin keyword heat table for student prototype fallback.
 
-   使用方法：
-   1. 去小红书搜索美甲关键词，例如“法式美甲”“裸粉美甲”。
-   2. 根据你观察到的笔记数量、点赞收藏、近期内容多少，调整 score。
-   3. 分数越高，今日热门排序越靠前。
+   This is not an official real-time Douyin API. It is a manual keyword model
+   for demos when public video URLs or an authorized data API are not available.
+*/
+const XHS_KEYWORD_HEAT_UPDATED_AT = '2026-06-02';
 
-   这不是小红书官方实时接口；它是适合学生作品集/课堂演示的关键词热度模型。
-══════════════════════════════════ */
-const XHS_KEYWORD_HEAT_UPDATED_AT = '2026-05-24';
+function douyinKeywordUrl(keyword) {
+  return `https://www.douyin.com/search/${encodeURIComponent(keyword)}`;
+}
 
 const XHS_KEYWORD_HEAT = [
-  { keyword: '法式美甲', score: 98000, label: '高热', xhs: 'https://www.xiaohongshu.com/search_result?keyword=%E6%B3%95%E5%BC%8F%E7%BE%8E%E7%94%B2' },
-  { keyword: '裸粉美甲', score: 92000, label: '高热', xhs: 'https://www.xiaohongshu.com/search_result?keyword=%E8%A3%B8%E7%B2%89%E7%BE%8E%E7%94%B2' },
-  { keyword: '显白美甲', score: 88000, label: '高热', xhs: 'https://www.xiaohongshu.com/search_result?keyword=%E6%98%BE%E7%99%BD%E7%BE%8E%E7%94%B2' },
-  { keyword: '春夏美甲', score: 83000, label: '升温', xhs: 'https://www.xiaohongshu.com/search_result?keyword=%E6%98%A5%E5%A4%8F%E7%BE%8E%E7%94%B2' },
-  { keyword: '小花美甲', score: 79000, label: '升温', xhs: 'https://www.xiaohongshu.com/search_result?keyword=%E5%B0%8F%E8%8A%B1%E7%BE%8E%E7%94%B2' },
-  { keyword: '玫瑰美甲', score: 76000, label: '升温', xhs: 'https://www.xiaohongshu.com/search_result?keyword=%E7%8E%AB%E7%91%B0%E7%BE%8E%E7%94%B2' },
-  { keyword: '镜面美甲', score: 72000, label: '热门', xhs: 'https://www.xiaohongshu.com/search_result?keyword=%E9%95%9C%E9%9D%A2%E7%BE%8E%E7%94%B2' },
-  { keyword: '玫瑰金美甲', score: 69000, label: '热门', xhs: 'https://www.xiaohongshu.com/search_result?keyword=%E7%8E%AB%E7%91%B0%E9%87%91%E7%BE%8E%E7%94%B2' },
-  { keyword: '通勤美甲', score: 64000, label: '稳定', xhs: 'https://www.xiaohongshu.com/search_result?keyword=%E9%80%9A%E5%8B%A4%E7%BE%8E%E7%94%B2' },
-  { keyword: '日系美甲', score: 61000, label: '稳定', xhs: 'https://www.xiaohongshu.com/search_result?keyword=%E6%97%A5%E7%B3%BB%E7%BE%8E%E7%94%B2' },
-  { keyword: '韩系美甲', score: 59000, label: '稳定', xhs: 'https://www.xiaohongshu.com/search_result?keyword=%E9%9F%A9%E7%B3%BB%E7%BE%8E%E7%94%B2' },
-  { keyword: '钻饰美甲', score: 56000, label: '热门', xhs: 'https://www.xiaohongshu.com/search_result?keyword=%E9%92%BB%E9%A5%B0%E7%BE%8E%E7%94%B2' },
-  { keyword: '星星美甲', score: 52000, label: '热门', xhs: 'https://www.xiaohongshu.com/search_result?keyword=%E6%98%9F%E6%98%9F%E7%BE%8E%E7%94%B2' },
-  { keyword: '奶牛美甲', score: 47000, label: '小众热', xhs: 'https://www.xiaohongshu.com/search_result?keyword=%E5%A5%B6%E7%89%9B%E7%BE%8E%E7%94%B2' },
-  { keyword: '豹纹美甲', score: 43000, label: '小众热', xhs: 'https://www.xiaohongshu.com/search_result?keyword=%E8%B1%B9%E7%BA%B9%E7%BE%8E%E7%94%B2' },
-  { keyword: '黑色美甲', score: 41000, label: '稳定', xhs: 'https://www.xiaohongshu.com/search_result?keyword=%E9%BB%91%E8%89%B2%E7%BE%8E%E7%94%B2' }
+  { keyword: '法式美甲', score: 98000, label: '高热', douyin: douyinKeywordUrl('法式美甲'), xhs: douyinKeywordUrl('法式美甲') },
+  { keyword: '裸粉美甲', score: 92000, label: '高热', douyin: douyinKeywordUrl('裸粉美甲'), xhs: douyinKeywordUrl('裸粉美甲') },
+  { keyword: '显白美甲', score: 88000, label: '高热', douyin: douyinKeywordUrl('显白美甲'), xhs: douyinKeywordUrl('显白美甲') },
+  { keyword: '春夏美甲', score: 83000, label: '升温', douyin: douyinKeywordUrl('春夏美甲'), xhs: douyinKeywordUrl('春夏美甲') },
+  { keyword: '小花美甲', score: 79000, label: '升温', douyin: douyinKeywordUrl('小花美甲'), xhs: douyinKeywordUrl('小花美甲') },
+  { keyword: '玫瑰美甲', score: 76000, label: '升温', douyin: douyinKeywordUrl('玫瑰美甲'), xhs: douyinKeywordUrl('玫瑰美甲') },
+  { keyword: '镜面美甲', score: 72000, label: '热门', douyin: douyinKeywordUrl('镜面美甲'), xhs: douyinKeywordUrl('镜面美甲') },
+  { keyword: '玫瑰金美甲', score: 69000, label: '热门', douyin: douyinKeywordUrl('玫瑰金美甲'), xhs: douyinKeywordUrl('玫瑰金美甲') },
+  { keyword: '通勤美甲', score: 64000, label: '稳定', douyin: douyinKeywordUrl('通勤美甲'), xhs: douyinKeywordUrl('通勤美甲') },
+  { keyword: '日系美甲', score: 61000, label: '稳定', douyin: douyinKeywordUrl('日系美甲'), xhs: douyinKeywordUrl('日系美甲') },
+  { keyword: '韩系美甲', score: 59000, label: '稳定', douyin: douyinKeywordUrl('韩系美甲'), xhs: douyinKeywordUrl('韩系美甲') },
+  { keyword: '钻饰美甲', score: 56000, label: '热门', douyin: douyinKeywordUrl('钻饰美甲'), xhs: douyinKeywordUrl('钻饰美甲') },
+  { keyword: '星星美甲', score: 52000, label: '热门', douyin: douyinKeywordUrl('星星美甲'), xhs: douyinKeywordUrl('星星美甲') },
+  { keyword: '奶牛美甲', score: 47000, label: '小众热', douyin: douyinKeywordUrl('奶牛美甲'), xhs: douyinKeywordUrl('奶牛美甲') },
+  { keyword: '豹纹美甲', score: 43000, label: '小众热', douyin: douyinKeywordUrl('豹纹美甲'), xhs: douyinKeywordUrl('豹纹美甲') },
+  { keyword: '黑色美甲', score: 41000, label: '稳定', douyin: douyinKeywordUrl('黑色美甲'), xhs: douyinKeywordUrl('黑色美甲') }
 ];
 
 const XHS_STYLE_KEYWORDS = {

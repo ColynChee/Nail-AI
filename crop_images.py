@@ -15,7 +15,7 @@ for img_path in jpg_files:
         current_ratio = w / h
 
         if abs(current_ratio - target_ratio) < 0.01:
-            print(f"✓ {os.path.basename(img_path)} 已是 16:9")
+            print(f"OK {os.path.basename(img_path)} 已是 16:9")
             continue
 
         new_h = int(w / target_ratio)
@@ -29,9 +29,9 @@ for img_path in jpg_files:
             img_crop = img.crop((0, top, w, top + new_h))
 
         img_crop.save(img_path, quality=95)
-        print(f"✓ {os.path.basename(img_path)}: {w}x{h} → {img_crop.width}x{img_crop.height}")
+        print(f"OK {os.path.basename(img_path)}: {w}x{h} -> {img_crop.width}x{img_crop.height}")
 
     except Exception as e:
-        print(f"✗ {os.path.basename(img_path)}: {e}")
+        print(f"ERROR {os.path.basename(img_path)}: {e}")
 
 print("\n完成！所有详细设计图已裁剪为 16:9 比例")

@@ -62,6 +62,31 @@
 .qi svg{width:25px;height:25px;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .qbtn span{font-size:11px;font-weight:600;color:var(--text-mid)}
 
+/* Operations entry */
+.ops-entry{
+  margin:-4px 0 18px;
+  padding:12px;
+  border:.5px solid var(--border);
+  border-radius:var(--rMd);
+  background:linear-gradient(135deg,#FFFFFF 0%,#F0FDFB 56%,#FFF0EB 100%);
+  display:flex;align-items:center;gap:12px;
+  cursor:pointer;box-shadow:var(--shadow-card);
+  transition:transform .13s;
+}
+.ops-entry:active{transform:scale(.98)}
+.ops-entry-icon{
+  width:42px;height:42px;border-radius:13px;
+  background:var(--white);
+  display:flex;align-items:center;justify-content:center;
+  border:.5px solid rgba(45,212,191,.35);
+  flex-shrink:0;
+}
+.ops-entry-icon svg{width:22px;height:22px;fill:none;stroke:var(--teal);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ops-entry-main{flex:1;min-width:0}
+.ops-entry-title{font-size:13px;font-weight:800;color:var(--text-dark)}
+.ops-entry-sub{font-size:10px;line-height:1.45;color:var(--text-soft);margin-top:3px;white-space:normal}
+.ops-entry-arrow{font-size:20px;color:var(--orange);font-weight:800;line-height:1;flex-shrink:0}
+
 /* Trend grid */
 .trend-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
 .trend-card{border-radius:var(--rMd);border:.5px solid var(--border);background:var(--white);overflow:hidden;cursor:pointer;transition:transform .13s}
@@ -71,6 +96,7 @@
 .trend-info{padding:8px 10px 10px}
 .trend-name{font-size:12px;font-weight:700;color:var(--text-dark)}
 .trend-sub{font-size:10px;color:var(--text-soft);margin-top:2px}
+.trend-stats{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;font-size:9px;color:var(--text-soft);line-height:1.3}
 .trend-foot{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
 .trend-heat{font-size:10px;color:var(--orange-deep);font-weight:700}
 .mini-try{
@@ -83,6 +109,11 @@
   margin-top:8px;padding:5px 8px;border-radius:var(--rPill);
   background:#FFF0F5;color:#C2185B;text-decoration:none;
   font-size:10px;font-weight:800;
+}
+.xhs-link.disabled{
+  color:var(--text-soft);
+  background:#F5F0ED;
+  cursor:default;
 }
 .trend-note{
   margin:-10px 2px 20px;
@@ -111,4 +142,3 @@
 .style-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
 .style-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
 .style-price{font-size:12px;font-weight:700;color:var(--orange)}
-

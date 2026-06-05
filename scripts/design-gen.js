@@ -5,13 +5,66 @@
 const DESIGN_API_BASE = 'http://localhost:8000';
 let currentDesign = null;
 
-async function generateDesign() {
-  const prompt = document.getElementById('design-prompt').value.trim();
+// ── Chip 选择逻辑 ──────────────────────
+document.addEventListener('click', function(e) {
+  const chip = e.target.closest('.design-chip');
+  if (!chip) return;
 
-  if (!prompt) {
-    showToast('请输入美甲描述 ✨');
+  const group = chip.dataset.group;
+  const value = chip.dataset.value;
+
+  // 取消同组其他选中
+  document.querySelectorAll(`.design-chip[data-group="${group}"]`).forEach(c => {
+    c.classList.remove('selected');
+  });
+  chip.classList.add('selected');
+
+  // 清除该组的错误状态
+  const section = document.getElementById(`section-${group}`);
+  if (section) section.classList.remove('has-error');
+
+  // 显示/隐藏"其他"输入框
+  const otherInput = document.getElementById(`${group}-other`);
+  if (otherInput) {
+    otherInput.style.display = value === '__other__' ? 'block' : 'none';
+    if (value === '__other__') otherInput.focus();
+  }
+});
+
+function _getGroupValue(group) {
+  const selected = document.querySelector(`.design-chip[data-group="${group}"].selected`);
+  if (!selected) return null;
+  if (selected.dataset.value === '__other__') {
+    const input = document.getElementById(`${group}-other`);
+    return input ? input.value.trim() : null;
+  }
+  return selected.dataset.value;
+}
+
+async function generateDesign() {
+  const shape = _getGroupValue('shape');
+  const color = _getGroupValue('color');
+  const style = _getGroupValue('style');
+  const notes = document.getElementById('design-notes').value.trim();
+
+  // 校验必填项
+  let hasError = false;
+  [['shape', shape], ['color', color], ['style', style]].forEach(([group, val]) => {
+    const section = document.getElementById(`section-${group}`);
+    if (!val) {
+      section.classList.add('has-error');
+      hasError = true;
+    }
+  });
+  if (hasError) {
+    showToast('请完成所有必填选项 ✨');
     return;
   }
+
+  // 拼接 prompt
+  const parts = [`${shape}指甲`, color, `${style}风格`];
+  if (notes) parts.push(notes);
+  const prompt = parts.join('、');
 
   // 显示加载状态
   const btnText = document.getElementById('gen-btn-text');
@@ -41,7 +94,6 @@ async function generateDesign() {
       return;
     }
 
-    // 存储当前设计
     currentDesign = {
       id: data.design_id,
       preview: `${DESIGN_API_BASE}${data.preview_url}`,
@@ -49,7 +101,6 @@ async function generateDesign() {
       optimized: data.optimized
     };
 
-    // 显示预览结果
     showDesignPreview();
     showToast('设计已生成，请确认 ✨');
 
@@ -84,7 +135,7 @@ function showDesignPreview() {
       <!-- 操作按钮 -->
       <div style="display:flex;gap:8px">
         <button class="btn-primary" style="flex:1" onclick="confirmDesign()">确认使用 →</button>
-        <button style="flex:1;padding:10px;border:1px solid var(--border);background:var(--white);color:var(--text-dark);border-radius:var(--rMd);cursor:pointer" onclick="document.getElementById('design-prompt').focus()">重新生成</button>
+        <button style="flex:1;padding:10px;border:1px solid var(--border);background:var(--white);color:var(--text-dark);border-radius:var(--rMd);cursor:pointer" onclick="document.getElementById('gen-results').style.display='none';document.querySelector('#s-design-gen .scroll-body').scrollTo({top:0,behavior:'smooth'})">重新生成</button>
       </div>
     </div>
   `;

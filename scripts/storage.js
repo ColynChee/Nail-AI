@@ -4,7 +4,10 @@
 const STORAGE_KEYS = {
   wishlist: 'nailai-wishlist',
   profile: 'nailai-profile',
-  clientId: 'nailai-client-id'
+  clientId: 'nailai-client-id',
+  bookings: 'nailai-bookings',
+  tryonHistory: 'nailai-tryon-history',
+  imageTryonHistory: 'nailai-image-tryon-history'
 };
 
 function readStorage(key, fallback) {
@@ -47,6 +50,18 @@ function loadPersistedState() {
   if (savedProfile && typeof savedProfile === 'object') {
     userProfile = { ...userProfile, ...savedProfile };
   }
+
+  const savedBookings = readStorage(STORAGE_KEYS.bookings, null);
+  if (Array.isArray(savedBookings)) bookings = savedBookings;
+
+  const savedTryonHistory = readStorage(STORAGE_KEYS.tryonHistory, null);
+  if (Array.isArray(savedTryonHistory)) tryonHistory = savedTryonHistory;
+
+  const savedImageTryonHistory = readStorage(STORAGE_KEYS.imageTryonHistory, null);
+  if (Array.isArray(savedImageTryonHistory)) imageTryonHistory = savedImageTryonHistory;
+
+  userProfile.bookingCount = bookings.length;
+  userProfile.tryonCount = tryonHistory.length;
 }
 
 function saveWishlistState() {
@@ -110,4 +125,20 @@ async function syncProfileToBackend() {
     writeStorage(STORAGE_KEYS.profile, userProfile);
   }
   return data;
+}
+
+function saveBookingState() {
+  userProfile.bookingCount = bookings.length;
+  writeStorage(STORAGE_KEYS.bookings, bookings);
+  writeStorage(STORAGE_KEYS.profile, userProfile);
+}
+
+function saveTryonHistoryState() {
+  userProfile.tryonCount = tryonHistory.length;
+  writeStorage(STORAGE_KEYS.tryonHistory, tryonHistory);
+  writeStorage(STORAGE_KEYS.profile, userProfile);
+}
+
+function saveImageTryonHistoryState() {
+  writeStorage(STORAGE_KEYS.imageTryonHistory, imageTryonHistory);
 }

@@ -11,6 +11,14 @@ function runImgSearch() {
     document.getElementById('isearch-detected-name').textContent = '粉调花卉系 · 奶油质感';
     document.getElementById('isearch-conf').textContent = '89%';
     document.getElementById('isearch-results').classList.add('show');
+    if (typeof addImageTryonHistory === 'function') {
+      addImageTryonHistory({
+        type: '灵感识别',
+        title: '粉调花卉系 · 奶油质感',
+        confidence: '89%',
+        resultCount: 4
+      });
+    }
   }, 2000);
 }
 
@@ -24,6 +32,14 @@ function simulateImgSearch(emoji, name, conf) {
     document.getElementById('isearch-detected-name').textContent = name;
     document.getElementById('isearch-conf').textContent = conf + '%';
     document.getElementById('isearch-results').classList.add('show');
+    if (typeof addImageTryonHistory === 'function') {
+      addImageTryonHistory({
+        type: '灵感识别',
+        title: name,
+        confidence: conf + '%',
+        resultCount: 4
+      });
+    }
   }, 1800);
 }
 
@@ -39,14 +55,11 @@ function resetImgSearch() {
 // 检测美甲功能
 // ═══════════════════════════════════
 function switchImgTab(tab) {
-  // 更新标签页样式
-  document.getElementById('tab-search').classList.toggle('on', tab === 'search');
+  document.getElementById('tab-inspire').classList.toggle('on', tab === 'inspire');
   document.getElementById('tab-detect').classList.toggle('on', tab === 'detect');
 
-  // 显示对应区域
-  document.getElementById('section-search').style.display = tab === 'search' ? 'flex' : 'none';
+  document.getElementById('section-inspire').style.display = tab === 'inspire' ? 'block' : 'none';
   document.getElementById('section-detect').style.display = tab === 'detect' ? 'flex' : 'none';
-  document.getElementById('isearch-examples').style.display = tab === 'search' ? 'block' : 'none';
 }
 
 async function runDetectNails() {
@@ -521,7 +534,16 @@ async function redetectWithParams() {
 
 function confirmDetectResults() {
   showToast('✅ 裁剪结果已保存');
-  // 可以添加保存或使用这些裁剪结果的逻辑
+  if (typeof addImageTryonHistory === 'function') {
+    const nails = window.currentDetectNails || [];
+    addImageTryonHistory({
+      type: '美甲检测',
+      title: `检测完成 · ${nails.length} 个指甲`,
+      confidence: '已裁剪',
+      image: nails[0] || '',
+      resultCount: nails.length
+    });
+  }
   setTimeout(() => resetDetect(), 800);
 }
 

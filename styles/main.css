@@ -3,6 +3,7 @@
 @import url("layout/navigation.css");
 @import url("components/shared.css");
 @import url("screens/home.css");
+@import url("screens/ops.css");
 @import url("screens/gallery.css");
 @import url("screens/image-search.css");
 @import url("screens/design-gen.css");

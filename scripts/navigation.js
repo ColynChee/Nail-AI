@@ -15,8 +15,11 @@ function go(id, isBack) {
   // side effects
   if (id === 's-wishlist') renderWishlist();
   if (id === 's-profile') applyProfile();
+  if (id === 's-bookings') renderBookings();
+  if (id === 's-tryon-history') renderTryonHistory();
+  if (id === 's-imgtryon-history') renderImageTryonHistory();
   if (id === 's-gallery') renderGallery(currentFilter);
+  if (id === 's-ops' && typeof renderOpsDashboard === 'function') renderOpsDashboard();
 }
 
 function goBack() { go(prevScreen, true); }
-

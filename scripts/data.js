@@ -19,6 +19,9 @@ let STYLES = [
 ];
 
 let wishlist = [];
+let bookings = [];
+let tryonHistory = [];
+let imageTryonHistory = [];
 let userProfile = {
   name: '小美同学',
   avatar: '小',
@@ -27,8 +30,8 @@ let userProfile = {
   skinToneLabel: '自然色',
   skinToneSource: 'preset',
   bio: '美甲爱好者',
-  tryonCount: 12,
-  bookingCount: 3
+  tryonCount: 0,
+  bookingCount: 0
 };
 let currentDetail = { emoji:'🌸', name:'樱花奶油', price:'¥199', bg:'#FFF0F5' };
 let prevScreen = 's-home';
@@ -300,4 +303,3 @@ async function loadDesignsFromBackend() {
     if (typeof renderHomeRecommendations === 'function') renderHomeRecommendations();
   }
 }
-
