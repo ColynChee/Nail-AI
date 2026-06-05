@@ -4,7 +4,7 @@ const CACHE = 'zhishangtanbing-v1';
 // 预缓存应用外壳（核心静态文件）
 const SHELL = [
   './',
-  './index.html',
+  './nailai.html',
   './manifest.json',
   './styles/main.css',
   './assets/logo-nobg.png',

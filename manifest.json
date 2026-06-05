@@ -2,7 +2,7 @@
   "name": "指上谈兵 · AI美甲试戴",
   "short_name": "指上谈兵",
   "description": "足不出户试甲纱，指尖靓丽人人夸 —— AI 美甲设计与虚拟试戴",
-  "start_url": "./index.html",
+  "start_url": "./nailai.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

@@ -71,7 +71,8 @@ git push
    ```
    https://nail-ai.vercel.app
    ```
-   （入口是 `index.html`，Vercel 会自动作为首页）
+   入口文件是 `nailai.html`，仓库里已有 `vercel.json` 把根地址自动指向它，
+   所以直接打开 `https://nail-ai.vercel.app` 即可，无需带文件名。
 
 ---
 
