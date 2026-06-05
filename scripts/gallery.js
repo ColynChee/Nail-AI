@@ -107,21 +107,14 @@ function filterGallery(filter, btn) {
 }
 
 // ── 首页搜索 ──────────────────────────
-let _searchTimer = null;
-
-function handleHomeSearch(query, immediate) {
-  clearTimeout(_searchTimer);
-  const delay = immediate ? 0 : 300;
-  _searchTimer = setTimeout(() => {
-    const q = (query || '').trim();
-    if (!q) return; // 空则不跳转
-    go('s-gallery');
-    renderSearchResults(q);
-    // 去掉所有 chip 高亮，显示搜索状态
-    if (typeof syncGalleryFilterChip === 'function') syncGalleryFilterChip('');
-    const note = document.getElementById('gallery-note');
-    if (note) note.textContent = `搜索"${q}"的结果`;
-  }, delay);
+function handleHomeSearch(query) {
+  const q = (query || '').trim();
+  if (!q) return;
+  go('s-gallery');
+  renderSearchResults(q);
+  if (typeof syncGalleryFilterChip === 'function') syncGalleryFilterChip('');
+  const note = document.getElementById('gallery-note');
+  if (note) note.textContent = `搜索"${q}"的结果`;
 }
 
 function renderSearchResults(query) {
