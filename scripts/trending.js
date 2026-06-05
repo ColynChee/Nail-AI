@@ -310,7 +310,7 @@ function paintTrendingHome() {
     if (document.getElementById('s-ops')?.classList.contains('active') && typeof renderOpsDashboard === 'function') renderOpsDashboard();
     return;
   }
-  grid.innerHTML = renderTrendingCards(liveTrendingItems, liveTrendingItems.length);
+  grid.innerHTML = renderTrendingCards(liveTrendingItems, 4);
   if (typeof renderOpsEntrySummary === 'function') renderOpsEntrySummary();
   if (document.getElementById('s-ops')?.classList.contains('active') && typeof renderOpsDashboard === 'function') renderOpsDashboard();
 }
