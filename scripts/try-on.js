@@ -160,6 +160,20 @@ const TRYON_COLOR_PALETTE = [
   { hex: '#4A6FA5', name: '海岛蓝' },
 ];
 
+function _refreshStyleCard() {
+  const noStyle = document.getElementById('tryon-no-style');
+  const hasStyle = document.getElementById('tryon-has-style');
+  const hasSelection = tryonStyleInfo && tryonStyleInfo.name;
+  if (noStyle) noStyle.style.display = hasSelection ? 'none' : 'flex';
+  if (hasStyle) hasStyle.style.display = hasSelection ? 'flex' : 'none';
+}
+
+function clearTryonStyle() {
+  tryonStyleInfo = { emoji: '', name: '', price: '', bg: '', image: '', designId: '' };
+  isGeneratedDesign = false;
+  _refreshStyleCard();
+}
+
 function setTryonStyle(emoji, name, price, bg, image, designId = null) {
   tryonStyleInfo = { emoji, name, price, bg, image: image || '', designId: designId || '' };
   isGeneratedDesign = !!designId;
@@ -167,18 +181,17 @@ function setTryonStyle(emoji, name, price, bg, image, designId = null) {
   const box = document.getElementById('tryon-thumb-box');
   if (box) {
     box.style.background = bg;
-
-    // 显示款式图（image），不显示详细图
-    const displayImage = image;
-
-    if (displayImage) {
-      box.innerHTML = `<img src="${displayImage}" alt="${name}" style="width:100%;height:100%;object-fit:cover;border-radius:var(--rMd)">`;
+    if (image) {
+      box.innerHTML = `<img src="${image}" alt="${name}" style="width:100%;height:100%;object-fit:cover;border-radius:var(--rMd)">`;
     } else {
       box.textContent = emoji;
     }
   }
   const lbl = document.getElementById('tryon-style-name');
   if (lbl) lbl.textContent = name;
+
+  // 切换到已选款式状态
+  _refreshStyleCard();
 
   // 清空之前的试戴结果
   const resultEl = document.getElementById('tryon-result');
@@ -204,7 +217,8 @@ function initGeneratedDesignIfExists() {
     try {
       const design = JSON.parse(stored);
       console.log('[TryOn] 加载 AI 生成的设计:', design);
-      setTryonStyle('✨', 'AI 生成款式', 0, '#FFF9E6', '', design.id);
+      const thumbnailUrl = design.thumbnail ? `${API_BASE}${design.thumbnail}` : '';
+      setTryonStyle('✨', 'AI 生成款式', 0, '#FFF9E6', thumbnailUrl, design.id);
       sessionStorage.removeItem('selectedGeneratedDesign');  // 清除后不再自动加载
     } catch (e) {
       console.error('[TryOn] 解析生成设计失败:', e);

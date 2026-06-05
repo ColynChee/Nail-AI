@@ -544,13 +544,25 @@
   <div class="scroll-body">
     <div class="tryon-body">
       <!-- selected style -->
-      <div class="style-preview-card">
-        <div class="sp-thumb" id="tryon-thumb-box" style="background:#FFF0F5">🌸</div>
-        <div>
-          <div class="sp-label">当前选择款式</div>
-          <div class="sp-name" id="tryon-style-name">樱花奶油</div>
+      <div class="style-preview-card" id="tryon-style-card">
+        <!-- unselected state -->
+        <div id="tryon-no-style" style="display:flex;align-items:center;gap:12px;width:100%">
+          <div class="sp-thumb" style="background:#F5F0ED;color:var(--text-soft);font-size:22px">💅</div>
+          <div style="flex:1">
+            <div class="sp-label">您还没选择款式</div>
+            <div style="font-size:12px;color:var(--text-soft);margin-top:2px">请先选择想试戴的款式</div>
+          </div>
+          <button class="sp-change" style="background:var(--orange);color:#fff;border:none" onclick="go('s-gallery')">选择款式</button>
         </div>
-        <button class="sp-change" onclick="go('s-gallery')">换款式</button>
+        <!-- selected state (hidden until style chosen) -->
+        <div id="tryon-has-style" style="display:none;align-items:center;gap:12px;width:100%">
+          <div class="sp-thumb" id="tryon-thumb-box" style="background:#FFF0F5">🌸</div>
+          <div style="flex:1">
+            <div class="sp-label">当前选择款式</div>
+            <div class="sp-name" id="tryon-style-name"></div>
+          </div>
+          <button class="sp-change" onclick="go('s-gallery')">换款式</button>
+        </div>
       </div>
 
       <!-- upload -->

@@ -20,6 +20,11 @@ function go(id, isBack) {
   if (id === 's-wishlist') renderWishlist();
   if (id === 's-profile') applyProfile();
   if (id === 's-bookings') renderBookings();
+  if (id === 's-tryon') {
+    // refresh style card in case it was never set
+    if (typeof _refreshStyleCard === 'function') _refreshStyleCard();
+    if (typeof initGeneratedDesignIfExists === 'function') initGeneratedDesignIfExists();
+  }
   if (id === 's-tryon-history') renderTryonHistory();
   if (id === 's-imgtryon-history') renderImageTryonHistory();
   if (id === 's-gallery') {
