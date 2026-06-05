@@ -17,7 +17,10 @@ function go(id, isBack) {
     const searchInput = document.querySelector('#s-home input[type="search"]');
     if (searchInput) searchInput.value = '';
   }
-  if (id === 's-wishlist') renderWishlist();
+  if (id === 's-wishlist') {
+    if (typeof switchCollectionTab === 'function') switchCollectionTab('wishlist');
+    else renderWishlist();
+  }
   if (id === 's-profile') applyProfile();
   if (id === 's-bookings') renderBookings();
   if (id === 's-tryon') {

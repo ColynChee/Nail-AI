@@ -32,3 +32,4 @@ cmd_*.txt
 *.xlsx
 .env
 backend/.env
+user_designs/

@@ -83,6 +83,28 @@ class ProfileUpsertRequest(BaseModel):
     recommended_style_ids: Optional[List[str]] = None
 
 
+class UserDesignCreateRequest(BaseModel):
+    client_id: str
+    name: Optional[str] = "我的设计"
+    source: str = "upload"               # upload | ai | gallery
+    image_data: Optional[str] = None     # base64 data URL（上传/AI生成）
+    image_url: Optional[str] = None      # 已托管的相对URL（ai/gallery复用）
+    style: Optional[str] = None
+    scenes: Optional[List[str]] = None
+    recommended_colors: Optional[List[str]] = None
+    description: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+
+class UserDesignUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    style: Optional[str] = None
+    scenes: Optional[List[str]] = None
+    recommended_colors: Optional[List[str]] = None
+    description: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+
 def _normalize_hex_color(value: Optional[str]) -> Optional[str]:
     if not value or not isinstance(value, str):
         return None
@@ -134,6 +156,37 @@ def _profile_row_to_payload(row) -> Dict:
         "skinToneLabel": row["skin_tone_label"],
         "skinToneSource": row["skin_tone_source"],
         "recommendedStyleIds": row["recommended_style_ids"] or [],
+    }
+
+
+def _jsonb_to_list(value):
+    """asyncpg 默认把 JSONB 返回成字符串，这里兼容解析成 list。"""
+    if value is None:
+        return []
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except (ValueError, TypeError):
+            return []
+    return value
+
+
+def _user_design_row_to_payload(row) -> Dict:
+    if row is None:
+        return {}
+    return {
+        "id": row["id"],
+        "client_id": row["client_id"],
+        "name": row["name"],
+        "image_url": row["image_url"],
+        "source": row["source"],
+        "style": row["style"],
+        "scenes": _jsonb_to_list(row["scenes"]),
+        "recommended_colors": _jsonb_to_list(row["recommended_colors"]),
+        "description": row["description"],
+        "tags": _jsonb_to_list(row["tags"]),
+        "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+        "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None,
     }
 
 
@@ -238,7 +291,7 @@ def _build_skin_analysis_client() -> Optional[OpenAI]:
 
 
 def _skin_analysis_model_name() -> str:
-    return os.getenv("SKIN_ANALYSIS_MODEL", "Qwen/Qwen2.5-VL-72B-Instruct").strip() or "Qwen/Qwen2.5-VL-72B-Instruct"
+    return os.getenv("SKIN_ANALYSIS_MODEL", "Qwen/Qwen3-VL-30B-A3B-Instruct").strip() or "Qwen/Qwen3-VL-30B-A3B-Instruct"
 
 
 def _image_to_data_url(image_bytes: bytes, mime_type: str = "image/jpeg") -> str:
@@ -277,6 +330,11 @@ TEMP_IMAGE_DIR.mkdir(exist_ok=True)
 
 # 挂载临时图片目录为静态文件服务
 app.mount("/temp_images", StaticFiles(directory=TEMP_IMAGE_DIR), name="temp_images")
+
+# 用户上传/保存的款式图片目录
+USER_DESIGNS_DIR = Path(__file__).resolve().parent.parent / "user_designs"
+USER_DESIGNS_DIR.mkdir(exist_ok=True)
+app.mount("/user_designs", StaticFiles(directory=USER_DESIGNS_DIR), name="user_designs")
 
 with open("designs.json", "r", encoding="utf-8") as f:
     DESIGNS = json.load(f)["designs"]
@@ -807,6 +865,244 @@ async def confirm_nail_design_endpoint(design_id: str):
         else:
             raise HTTPException(status_code=500, detail=result.get("error", "设计确认失败"))
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===== 我的设计（用户款式）=====
+@app.post("/api/analyze-design", tags=["我的设计"])
+async def analyze_design(image: UploadFile = File(...)):
+    """用视觉模型分析一张美甲款式图，返回风格/场景/配色建议（不保存）。"""
+    contents = await image.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="图片不能为空")
+
+    client = _build_skin_analysis_client()
+    if client is None:
+        raise HTTPException(status_code=503, detail="MODELSCOPE_TOKEN 未配置，无法调用款式分析模型")
+
+    model_name = _skin_analysis_model_name()
+    data_url = _image_to_data_url(contents, image.content_type or "image/jpeg")
+
+    system_msg = """你是专业的美甲设计分析师。请根据用户上传的美甲款式图片，分析它的特征。
+
+要求：
+- 只能输出 JSON，不要任何额外文字
+- name: 给这款美甲起一个简短好记的中文名称（不超过6个字）
+- style: 一个词概括风格，如「法式」「韩系」「日系」「酷感」「甜美」「复古」「简约」「奢华」
+- scenes: 2-4个适合的场景，从「约会」「通勤」「派对」「日常」「婚礼」「面试」「度假」里选
+- recommended_colors: 2-4个该款式的主要颜色，用十六进制色码 #RRGGBB
+- description: 一句话专业描述这款美甲的特点和搭配建议
+- tags: 2-4个风格标签，如「闪耀」「裸色」「花系」「镜面」「钻饰」
+
+输出格式：
+{"name":"粉钻渐变","style":"韩系","scenes":["约会","派对"],"recommended_colors":["#F4A0B4","#C0C0C0"],"description":"...","tags":["闪耀","渐变"]}
+"""
+
+    try:
+        response = client.chat.completions.create(
+            model=model_name,
+            temperature=0.3,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": system_msg},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "请分析这张美甲款式图片并返回 JSON。"},
+                        {"type": "image_url", "image_url": {"url": data_url}},
+                    ],
+                },
+            ],
+        )
+        content = response.choices[0].message.content if response.choices else ""
+        if not content:
+            raise HTTPException(status_code=502, detail="款式分析模型未返回内容")
+        try:
+            result = json.loads(content)
+        except json.JSONDecodeError:
+            import re
+            match = re.search(r'\{.*\}', content, re.S)
+            if not match:
+                raise HTTPException(status_code=502, detail="款式分析模型返回的不是 JSON")
+            result = json.loads(match.group(0))
+
+        return {
+            "success": True,
+            "name": str(result.get("name", "") or "").strip(),
+            "style": str(result.get("style", "") or "").strip(),
+            "scenes": result.get("scenes") or [],
+            "recommended_colors": result.get("recommended_colors") or [],
+            "description": str(result.get("description", "") or "").strip(),
+            "tags": result.get("tags") or [],
+            "model_used": model_name,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[DesignAnalysis] Error: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=f"款式分析失败: {e}")
+
+
+@app.post("/api/user-designs", tags=["我的设计"])
+async def create_user_design(payload: UserDesignCreateRequest):
+    """保存一个用户款式（上传/AI生成/图库）。"""
+    if not payload.client_id:
+        raise HTTPException(status_code=400, detail="缺少 client_id")
+
+    pool = getattr(app.state, "db_pool", None)
+    if pool is None:
+        raise HTTPException(status_code=503, detail="数据库连接未就绪")
+
+    # 解析图片：data URL 落盘，或复用已有 url
+    image_url = None
+    if payload.image_data:
+        try:
+            raw = payload.image_data
+            if "," in raw and raw.strip().startswith("data:"):
+                raw = raw.split(",", 1)[1]
+            img_bytes = base64.b64decode(raw)
+        except Exception:
+            raise HTTPException(status_code=400, detail="image_data 不是有效的 base64")
+        import uuid
+        fname = f"{uuid.uuid4().hex}.jpg"
+        (USER_DESIGNS_DIR / fname).write_bytes(img_bytes)
+        image_url = f"/user_designs/{fname}"
+    elif payload.image_url:
+        image_url = payload.image_url
+    else:
+        raise HTTPException(status_code=400, detail="缺少图片（image_data 或 image_url）")
+
+    source = payload.source if payload.source in ("upload", "ai", "gallery") else "upload"
+
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """
+                INSERT INTO user_designs (
+                  client_id, name, image_url, source,
+                  style, scenes, recommended_colors, description, tags, updated_at
+                ) VALUES (
+                  $1, $2, $3, $4,
+                  $5, $6::jsonb, $7::jsonb, $8, $9::jsonb, now()
+                )
+                RETURNING *
+                """,
+                payload.client_id,
+                (payload.name or "我的设计").strip() or "我的设计",
+                image_url,
+                source,
+                payload.style,
+                json.dumps(payload.scenes or []),
+                json.dumps(payload.recommended_colors or []),
+                payload.description,
+                json.dumps(payload.tags or []),
+            )
+        return {"success": True, "design": _user_design_row_to_payload(row)}
+    except Exception as e:
+        print(f"[UserDesign] create failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/user-designs", tags=["我的设计"])
+async def list_user_designs(client_id: str):
+    """获取某用户的全部款式。"""
+    if not client_id:
+        raise HTTPException(status_code=400, detail="缺少 client_id")
+    pool = getattr(app.state, "db_pool", None)
+    if pool is None:
+        raise HTTPException(status_code=503, detail="数据库连接未就绪")
+    try:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                "SELECT * FROM user_designs WHERE client_id = $1 ORDER BY created_at DESC",
+                client_id,
+            )
+        return {"success": True, "designs": [_user_design_row_to_payload(r) for r in rows]}
+    except Exception as e:
+        print(f"[UserDesign] list failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.patch("/api/user-designs/{design_id}", tags=["我的设计"])
+async def update_user_design(design_id: int, payload: UserDesignUpdateRequest, client_id: str):
+    """编辑用户款式（仅更新传入的字段）。"""
+    if not client_id:
+        raise HTTPException(status_code=400, detail="缺少 client_id")
+    pool = getattr(app.state, "db_pool", None)
+    if pool is None:
+        raise HTTPException(status_code=503, detail="数据库连接未就绪")
+
+    sets = []
+    values = []
+    idx = 1
+    simple_fields = {"name": payload.name, "style": payload.style, "description": payload.description}
+    for col, val in simple_fields.items():
+        if val is not None:
+            sets.append(f"{col} = ${idx}")
+            values.append(val)
+            idx += 1
+    jsonb_fields = {
+        "scenes": payload.scenes,
+        "recommended_colors": payload.recommended_colors,
+        "tags": payload.tags,
+    }
+    for col, val in jsonb_fields.items():
+        if val is not None:
+            sets.append(f"{col} = ${idx}::jsonb")
+            values.append(json.dumps(val))
+            idx += 1
+
+    if not sets:
+        raise HTTPException(status_code=400, detail="没有要更新的字段")
+
+    sets.append("updated_at = now()")
+    values.append(design_id)
+    id_pos = idx
+    idx += 1
+    values.append(client_id)
+    cid_pos = idx
+
+    query = f"UPDATE user_designs SET {', '.join(sets)} WHERE id = ${id_pos} AND client_id = ${cid_pos} RETURNING *"
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(query, *values)
+        if row is None:
+            raise HTTPException(status_code=404, detail="款式不存在或无权限")
+        return {"success": True, "design": _user_design_row_to_payload(row)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[UserDesign] update failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/user-designs/{design_id}", tags=["我的设计"])
+async def delete_user_design(design_id: int, client_id: str):
+    """删除用户款式（并尽力清理本地图片文件）。"""
+    if not client_id:
+        raise HTTPException(status_code=400, detail="缺少 client_id")
+    pool = getattr(app.state, "db_pool", None)
+    if pool is None:
+        raise HTTPException(status_code=503, detail="数据库连接未就绪")
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                "DELETE FROM user_designs WHERE id = $1 AND client_id = $2 RETURNING image_url",
+                design_id, client_id,
+            )
+        if row is None:
+            raise HTTPException(status_code=404, detail="款式不存在或无权限")
+        image_url = row["image_url"]
+        if image_url and image_url.startswith("/user_designs/"):
+            try:
+                (USER_DESIGNS_DIR / image_url.split("/user_designs/", 1)[1]).unlink(missing_ok=True)
+            except Exception:
+                pass
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[UserDesign] delete failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

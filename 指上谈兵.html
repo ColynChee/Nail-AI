@@ -683,12 +683,55 @@
   </div>
   <div class="scroll-body">
     <div class="wishlist-body">
-      <div class="wishlist-grid" id="wishlist-grid"></div>
-      <div class="wishlist-empty" id="wishlist-empty">
-        <div class="empty-icon">🧡</div>
-        <h3>收藏你喜欢的款式</h3>
-        <p>逛款式库时，点击 ♡ 就能收藏<br>下次一键找到心仪款式</p>
-        <button class="btn-primary btn-pill" style="margin-top:12px" onclick="go('s-gallery')">去浏览款式库</button>
+      <!-- 两 Tab 切换 -->
+      <div class="coll-tabs">
+        <button class="coll-tab active" id="coll-tab-wishlist" onclick="switchCollectionTab('wishlist')">收藏的款式</button>
+        <button class="coll-tab" id="coll-tab-mydesigns" onclick="switchCollectionTab('mydesigns')">我的设计</button>
+      </div>
+
+      <!-- Tab1：收藏的款式 -->
+      <div id="tab-wishlist">
+        <div class="wishlist-grid" id="wishlist-grid"></div>
+        <div class="wishlist-empty" id="wishlist-empty">
+          <div class="empty-icon">🧡</div>
+          <h3>收藏你喜欢的款式</h3>
+          <p>逛款式库时，点击 ♡ 就能收藏<br>下次一键找到心仪款式</p>
+          <button class="btn-primary btn-pill" style="margin-top:12px" onclick="go('s-gallery')">去浏览款式库</button>
+        </div>
+      </div>
+
+      <!-- Tab2：我的设计 -->
+      <div id="tab-mydesigns" style="display:none">
+        <button class="md-add-btn" onclick="startDesignUpload()">＋ 添加款式</button>
+        <div class="wishlist-grid" id="mydesigns-grid"></div>
+        <div class="wishlist-empty" id="mydesigns-empty" style="display:none">
+          <div class="empty-icon">✨</div>
+          <h3>还没有自己的设计</h3>
+          <p>上传一张美甲图，AI 帮你分析风格<br>也可以在 AI 设计页保存生成的款式</p>
+          <button class="btn-primary btn-pill" style="margin-top:12px" onclick="startDesignUpload()">上传美甲图片</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <input type="file" id="md-upload-input" accept="image/*" style="display:none">
+
+  <!-- 编辑/新增 sheet -->
+  <div class="md-sheet-overlay" id="md-sheet-overlay" onclick="closeDesignSheet()"></div>
+  <div class="md-sheet" id="md-sheet">
+    <div class="md-sheet-handle"></div>
+    <div class="md-sheet-scroll">
+      <div class="md-preview" id="md-sheet-preview"></div>
+      <label class="md-field-label">名称</label>
+      <input type="text" id="md-field-name" class="md-field-input" placeholder="给款式起个名字">
+      <label class="md-field-label">风格</label>
+      <input type="text" id="md-field-style" class="md-field-input" placeholder="如：法式 / 韩系 / 酷感">
+      <label class="md-field-label">适合场景</label>
+      <input type="text" id="md-field-scenes" class="md-field-input" placeholder="逗号分隔，如：约会, 通勤">
+      <label class="md-field-label">描述</label>
+      <textarea id="md-field-desc" class="md-field-input md-field-textarea" placeholder="这款美甲的特点 / 搭配建议"></textarea>
+      <div class="md-sheet-actions">
+        <button class="md-btn-delete" id="md-btn-delete" onclick="deleteCurrentDesign()" style="display:none">删除</button>
+        <button class="md-btn-save" id="md-btn-save" onclick="saveDesignSheet()">保存</button>
       </div>
     </div>
   </div>
@@ -1190,6 +1233,7 @@
 <script src="scripts/image-search.js"></script>
 <script src="scripts/design-gen.js"></script>
 <script src="scripts/wishlist.js"></script>
+<script src="scripts/my-designs.js?v=mydesigns-20260606"></script>
 <script src="scripts/profile.js"></script>
 <script>
   window.SKIN_ANALYSIS_ENDPOINT = 'http://localhost:8000/api/analyze-skin-tone';
