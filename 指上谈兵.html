@@ -20,11 +20,12 @@
 <div class="screen active" id="s-home">
   <div class="sbar"><span class="sbar-l">9:41</span><div class="sbar-r"><span>●●●</span><span>WiFi</span><span>98%</span></div></div>
   <div class="topnav">
-    <div class="search-pill">
-      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
-      <input type="text" placeholder="搜索款式、颜色、风格…"
-        onkeydown="if(event.key==='Enter'){handleHomeSearch(this.value);this.blur();}">
-    </div>
+    <form class="search-pill" onsubmit="handleHomeSearch(this.querySelector('input').value);this.querySelector('input').blur();return false;">
+      <button type="submit" style="background:none;border:none;padding:0;cursor:pointer;display:flex;align-items:center;flex-shrink:0;">
+        <svg viewBox="0 0 24 24" style="width:15px;height:15px;fill:none;stroke:var(--orange);stroke-width:2;stroke-linecap:round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
+      </button>
+      <input type="search" placeholder="搜索款式、颜色、风格…">
+    </form>
     <button class="icon-btn icon-btn-ghost" onclick="go('s-wishlist')">
       <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
     </button>

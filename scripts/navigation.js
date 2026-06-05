@@ -14,7 +14,7 @@ function go(id, isBack) {
   next.classList.add('active');
   // side effects
   if (id === 's-home') {
-    const searchInput = document.querySelector('#s-home .search-pill input');
+    const searchInput = document.querySelector('#s-home input[type="search"]');
     if (searchInput) searchInput.value = '';
   }
   if (id === 's-wishlist') renderWishlist();
