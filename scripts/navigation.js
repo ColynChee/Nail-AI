@@ -13,6 +13,10 @@ function go(id, isBack) {
   if (isBack) next.classList.add('back');
   next.classList.add('active');
   // side effects
+  if (id === 's-home') {
+    const searchInput = document.querySelector('#s-home .search-pill input');
+    if (searchInput) searchInput.value = '';
+  }
   if (id === 's-wishlist') renderWishlist();
   if (id === 's-profile') applyProfile();
   if (id === 's-bookings') renderBookings();

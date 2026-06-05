@@ -5,7 +5,9 @@ function updateGalleryHeatNote(filter) {
   const note = document.getElementById('gallery-note');
   if (!note) return;
   const state = typeof getLiveTrendingState === 'function' ? getLiveTrendingState() : {};
-  const updatedAt = state.updatedAt || '本地款式库';
+  const updatedAt = typeof formatUpdatedAt === 'function'
+    ? formatUpdatedAt(state.updatedAt)
+    : (state.updatedAt || '本地款式库');
   if (filter === '热门' && state.status === 'ready') {
     const sourceName = state.source === 'bilibili-live' ? 'B站' : '平台';
     note.textContent = `热门榜按${sourceName}热度排序 · 更新于 ${updatedAt}`;

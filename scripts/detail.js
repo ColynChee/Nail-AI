@@ -117,11 +117,14 @@ function buildDetailDescription(design, name, trendItem, idx) {
 function relatedPostsFor(design, trendItem) {
   const items = getTrendItems();
   const designTags = design?.tags || [];
+  const designName = design?.name || '';
+  const designId = design?.id || '';
   const exact = trendItem ? [trendItem] : [];
+  // Only include items that specifically match this design — by id, name, or tag overlap
   const related = items.filter(item => item !== trendItem && (
-    item.id === design?.id ||
-    designTags.some(tag => (item.sub || '').includes(tag) || (item.name || '').includes(tag)) ||
-    isRealtimeTrendItem(item)
+    (designId && item.id === designId) ||
+    (designName && item.name === designName) ||
+    designTags.some(tag => (item.sub || '').includes(tag))
   ));
   return [...exact, ...related].slice(0, 3);
 }

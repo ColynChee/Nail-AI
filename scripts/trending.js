@@ -9,6 +9,20 @@ let xhsTrendingState = {
 };
 let xhsTrendingTimer;
 
+function formatUpdatedAt(raw) {
+  if (!raw) return '刚刚';
+  const d = new Date(raw);
+  if (isNaN(d)) return raw; // not a date string, return as-is
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const todayStr = now.toDateString();
+  const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+  if (d.toDateString() === todayStr) return `今天 ${time}`;
+  if (d.toDateString() === yesterday.toDateString()) return `昨天 ${time}`;
+  return `${d.getMonth() + 1}月${d.getDate()}日 ${time}`;
+}
+
 function getDouyinTrendingConfig() {
   if (typeof DOUYIN_TRENDING_CONFIG !== 'undefined') return DOUYIN_TRENDING_CONFIG;
   if (typeof XHS_TRENDING_CONFIG !== 'undefined') return XHS_TRENDING_CONFIG;
@@ -263,35 +277,35 @@ function updateTrendNote() {
     return;
   }
   if (xhsTrendingState.source === 'keyword') {
-    note.textContent = `平台关键词热度参考 · 更新于 ${xhsTrendingState.updatedAt} · 可在 scripts/xhs-keyword-heat.js 调整分数`;
+    note.textContent = `平台关键词热度参考 · 更新于 ${formatUpdatedAt(xhsTrendingState.updatedAt)} · 可在 scripts/xhs-keyword-heat.js 调整分数`;
     return;
   }
   if (xhsTrendingState.source === 'public-crawler') {
     const fallbackCount = liveTrendingItems.filter(item => item.trendSource === 'local-fallback').length;
     note.textContent = fallbackCount
-      ? `公开视频未暴露部分统计 · ${fallbackCount} 款使用本地热度参考 · 更新于 ${xhsTrendingState.updatedAt || '刚刚'}`
-      : `公开视频抓取 · 更新于 ${xhsTrendingState.updatedAt || '刚刚'}`;
+      ? `公开视频未暴露部分统计 · ${fallbackCount} 款使用本地热度参考 · 更新于 ${formatUpdatedAt(xhsTrendingState.updatedAt)}`
+      : `公开视频抓取 · 更新于 ${formatUpdatedAt(xhsTrendingState.updatedAt)}`;
     return;
   }
   if (xhsTrendingState.source === 'public-discovery') {
     const realtimeCount = liveTrendingItems.filter(item => item.trendSource === 'douyin-public').length;
     const fallbackCount = liveTrendingItems.filter(item => item.trendSource === 'local-fallback').length;
     note.textContent = realtimeCount
-      ? `自动发现公开视频 · ${realtimeCount} 款实时统计 · ${fallbackCount} 款本地参考 · 更新于 ${xhsTrendingState.updatedAt || '刚刚'}`
-      : `已尝试自动搜索视频 · 暂未读取到公开视频统计 · 更新于 ${xhsTrendingState.updatedAt || '刚刚'}`;
+      ? `自动发现公开视频 · ${realtimeCount} 款实时统计 · ${fallbackCount} 款本地参考 · 更新于 ${formatUpdatedAt(xhsTrendingState.updatedAt)}`
+      : `已尝试自动搜索视频 · 暂未读取到公开视频统计 · 更新于 ${formatUpdatedAt(xhsTrendingState.updatedAt)}`;
     return;
   }
   if (xhsTrendingState.source === 'bilibili-live') {
     const realtimeCount = liveTrendingItems.filter(item => item.trendSource === 'bilibili-public').length;
     const fallbackCount = liveTrendingItems.filter(item => item.trendSource === 'local-fallback').length;
-    note.textContent = `B站公开视频实时统计 · ${realtimeCount} 款实时 · ${fallbackCount} 款本地参考 · 更新于 ${xhsTrendingState.updatedAt || '刚刚'}`;
+    note.textContent = `B站公开视频实时统计 · ${realtimeCount} 款实时 · ${fallbackCount} 款本地参考 · 更新于 ${formatUpdatedAt(xhsTrendingState.updatedAt)}`;
     return;
   }
   if (xhsTrendingState.source === 'local-fallback') {
-    note.textContent = `未接入公开视频 · 使用本地热度参考 · 更新于 ${xhsTrendingState.updatedAt || '刚刚'}`;
+    note.textContent = `未接入公开视频 · 使用本地热度参考 · 更新于 ${formatUpdatedAt(xhsTrendingState.updatedAt)}`;
     return;
   }
-  note.textContent = `平台授权数据 · 更新于 ${xhsTrendingState.updatedAt || '刚刚'}`;
+  note.textContent = `平台授权数据 · 更新于 ${formatUpdatedAt(xhsTrendingState.updatedAt)}`;
 }
 
 function paintTrendingHome() {
