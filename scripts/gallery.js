@@ -105,3 +105,52 @@ function filterGallery(filter, btn) {
   }
   renderGallery(filter);
 }
+
+// ── 首页搜索 ──────────────────────────
+let _searchTimer = null;
+
+function handleHomeSearch(query, immediate) {
+  clearTimeout(_searchTimer);
+  const delay = immediate ? 0 : 300;
+  _searchTimer = setTimeout(() => {
+    const q = (query || '').trim();
+    if (!q) return; // 空则不跳转
+    go('s-gallery');
+    renderSearchResults(q);
+    // 去掉所有 chip 高亮，显示搜索状态
+    if (typeof syncGalleryFilterChip === 'function') syncGalleryFilterChip('');
+    const note = document.getElementById('gallery-note');
+    if (note) note.textContent = `搜索"${q}"的结果`;
+  }, delay);
+}
+
+function renderSearchResults(query) {
+  const grid = document.getElementById('gallery-grid');
+  if (!grid) return;
+  grid.className = 'gallery-grid';
+  const q = query.toLowerCase();
+  const results = STYLES.filter(s => {
+    const text = [s.name, ...(s.tags || []), s.price || ''].join(' ').toLowerCase();
+    return q.split(/\s+/).every(word => text.includes(word));
+  });
+  if (!results.length) {
+    grid.innerHTML = `<div class="data-empty gallery-empty" style="grid-column:1/-1">
+      <div class="data-empty-title">没有找到相关款式</div>
+      <div class="data-empty-text">试试其他关键词，比如颜色、风格或形状</div>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = results.map((s, i) => `
+    <div class="g-card card-press" onclick="goDetail('${s.emoji}','${s.name}','${(s.tags||[]).slice(0,2).join('·')}','${s.price}','${s.bg}','${s.image||''}','${s.id||''}')">
+      <div class="g-thumb" style="background:${s.bg}">
+        ${s.image ? `<img src="${s.image}" alt="${s.name}">` : s.emoji}
+      </div>
+      <div class="g-info">
+        <div class="g-name">${s.name}</div>
+        <div class="g-meta">
+          <span class="g-price">${s.price}</span>
+          <span class="g-heat">${s.heat||''}</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
