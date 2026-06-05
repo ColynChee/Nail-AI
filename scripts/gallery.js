@@ -63,33 +63,18 @@ function renderGallery(filter) {
   const grid = document.getElementById('gallery-grid');
   updateGalleryHeatNote(filter);
   if (filter === '热门') {
-    const liveItems = typeof getLiveTrendingItems === 'function' ? getLiveTrendingItems() : [];
-    if (!liveItems.length) {
-      const state = typeof getLiveTrendingState === 'function' ? getLiveTrendingState() : {};
-      grid.innerHTML = `
-        <div class="data-empty gallery-empty">
-          <div class="data-empty-title">${state.status === 'loading' ? '正在同步平台热度' : '未接入平台实时数据源'}</div>
-          <div class="data-empty-text">${state.message || '请先配置授权后的实时数据接口，或添加公开视频链接。'}</div>
-        </div>`;
-      return;
+    // 用全部款式按热度排序，渲染成和首页「今日热门」一样的 trend-card 样式
+    const hotItems = galleryItemsByFilter('全部').map(s => ({
+      ...s,
+      sub: s.sub || (Array.isArray(s.tags) ? s.tags.slice(0, 2).join(' · ') : ''),
+    }));
+    grid.className = 'gallery-grid trend-grid';
+    if (typeof renderTrendingCards === 'function') {
+      grid.innerHTML = renderTrendingCards(hotItems, hotItems.length);
     }
-    grid.innerHTML = liveItems.map(s => `
-      <div class="g-card card-press" onclick="goDetail('${s.emoji}','${s.name}','${s.sub}','${s.price}','${s.bg}','${s.image || ''}','${s.id || ''}')">
-        <div class="g-thumb" style="background:${s.bg}">
-          ${s.image ? `<img src="${s.image}" alt="${s.name}">` : s.emoji}
-          <div class="rank-badge">#${s.rank}</div>
-          ${s.rank === 1 ? '<div class="hot-badge">热</div>' : ''}
-        </div>
-        <div class="g-info">
-          <div class="g-name">${s.name}</div>
-          <div class="g-meta">
-            <span class="g-price">${s.price}</span>
-            <span class="g-heat">${s.heat}</span>
-          </div>
-        </div>
-      </div>`).join('');
     return;
   }
+  grid.className = 'gallery-grid';
   const items = galleryItemsByFilter(filter);
   grid.innerHTML = items.map((s,i) => `
     <div class="g-card card-press" onclick="goDetail('${s.emoji}','${s.name}','${s.sub || `${s.tags[0]}·${s.tags[1]||s.tags[0]}`}','${s.price}','${s.bg}','${s.image || ''}','${s.id || ''}')">
