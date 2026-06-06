@@ -217,8 +217,11 @@ function initGeneratedDesignIfExists() {
     try {
       const design = JSON.parse(stored);
       console.log('[TryOn] 加载 AI 生成的设计:', design);
-      const thumbnailUrl = design.thumbnail ? `${API_BASE}${design.thumbnail}` : '';
-      setTryonStyle('✨', 'AI 生成款式', 0, '#FFF9E6', thumbnailUrl, design.id);
+      // 优先用 preview（AI 生成的完整设计图），thumbnail（扇形预览）兜底
+      const relativeImg = design.preview || design.thumbnail || '';
+      const imgUrl = relativeImg ? `${API_BASE}${relativeImg}` : '';
+      const shortName = (design.prompt || 'AI 生成款式').slice(0, 20);
+      setTryonStyle('✨', shortName, 0, '#FFF9E6', imgUrl, design.id);
       sessionStorage.removeItem('selectedGeneratedDesign');  // 清除后不再自动加载
     } catch (e) {
       console.error('[TryOn] 解析生成设计失败:', e);

@@ -122,7 +122,9 @@ async function saveGeneratedToMine() {
   }
   // currentDesign.preview 是绝对URL，转成相对路径存库
   const relativeUrl = currentDesign.preview.replace(DESIGN_API_BASE, '');
-  await saveAiDesignToMine(relativeUrl, currentDesign.optimized || 'AI 生成款式', currentDesign.prompt || '');
+  // name 用用户输入的 prompt（短），description 用 DeepSeek 优化后的详细描述（长）
+  const shortName = (currentDesign.prompt || 'AI 生成款式').slice(0, 30);
+  await saveAiDesignToMine(relativeUrl, shortName, currentDesign.optimized || currentDesign.prompt || '');
 }
 
 function showDesignPreview() {
@@ -182,7 +184,8 @@ async function confirmDesign() {
     sessionStorage.setItem('selectedGeneratedDesign', JSON.stringify({
       id: data.design_id,
       prompt: currentDesign.prompt,
-      thumbnail: data.thumbnail_url
+      thumbnail: data.thumbnail_url,
+      preview: currentDesign.preview.replace(DESIGN_API_BASE, '')  // 相对路径，跨域名仍可用
     }));
 
     showToast('设计已确认，准备试戴... ✨');
