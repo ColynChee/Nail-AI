@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" href="assets/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles/main.css?v=v4">
+<link rel="stylesheet" href="styles/main.css?v=v6">
 </head>
 <body>
 <div class="phone" id="app">
@@ -311,6 +311,7 @@
   <div class="filter-row" id="filter-row">
     <button class="chip on" onclick="filterGallery('全部',this)">全部</button>
     <button class="chip" onclick="filterGallery('热门',this)">热门</button>
+    <button class="chip" onclick="filterGallery('我的灵感',this)">✨ 我的灵感</button>
     <button class="chip" onclick="filterGallery('春夏',this)">春夏</button>
     <button class="chip" onclick="filterGallery('秋冬',this)">秋冬</button>
     <button class="chip" onclick="filterGallery('约会',this)">约会</button>
@@ -1256,30 +1257,30 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<script src="scripts/config.js?v=v4"></script>
-<script src="scripts/data.js?v=v4"></script>
-<script src="scripts/storage.js?v=v4"></script>
-<script src="scripts/auth.js?v=v4"></script>
-<script src="scripts/navigation.js?v=v4"></script>
-<script src="scripts/xhs-config.js?v=v4"></script>
-<script src="scripts/xhs-keyword-heat.js?v=v4"></script>
-<script src="scripts/trending.js?v=v4"></script>
+<script src="scripts/config.js?v=v6"></script>
+<script src="scripts/data.js?v=v6"></script>
+<script src="scripts/storage.js?v=v6"></script>
+<script src="scripts/auth.js?v=v6"></script>
+<script src="scripts/navigation.js?v=v6"></script>
+<script src="scripts/xhs-config.js?v=v6"></script>
+<script src="scripts/xhs-keyword-heat.js?v=v6"></script>
+<script src="scripts/trending.js?v=v6"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="scripts/ops.js?v=v4"></script>
-<script src="scripts/gallery.js?v=v4"></script>
-<script src="scripts/detail.js?v=v4"></script>
-<script src="scripts/try-on.js?v=v4"></script>
-<script src="scripts/image-search.js?v=v4"></script>
-<script src="scripts/design-gen.js?v=v4"></script>
-<script src="scripts/wishlist.js?v=v4"></script>
-<script src="scripts/my-designs.js?v=v4"></script>
-<script src="scripts/profile.js?v=v4"></script>
+<script src="scripts/ops.js?v=v6"></script>
+<script src="scripts/gallery.js?v=v6"></script>
+<script src="scripts/detail.js?v=v6"></script>
+<script src="scripts/try-on.js?v=v6"></script>
+<script src="scripts/image-search.js?v=v6"></script>
+<script src="scripts/design-gen.js?v=v6"></script>
+<script src="scripts/wishlist.js?v=v6"></script>
+<script src="scripts/my-designs.js?v=v6"></script>
+<script src="scripts/profile.js?v=v6"></script>
 <script>
   window.SKIN_ANALYSIS_ENDPOINT = 'http://localhost:8000/api/analyze-skin-tone';
 </script>
-<script src="scripts/skin-sheet.js?v=v4"></script>
-<script src="scripts/toast.js?v=v4"></script>
-<script src="scripts/init.js?v=v4"></script>
+<script src="scripts/skin-sheet.js?v=v6"></script>
+<script src="scripts/toast.js?v=v6"></script>
+<script src="scripts/init.js?v=v6"></script>
 <script>
   // 注册 Service Worker（PWA 离线 + 可安装）
   if ('serviceWorker' in navigator) {

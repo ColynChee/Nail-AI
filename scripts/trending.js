@@ -414,6 +414,8 @@ function openTrendingGallery() {
 
 function syncGalleryFilterChip(filter) {
   document.querySelectorAll('#filter-row .chip').forEach(chip => {
-    chip.classList.toggle('on', chip.textContent.trim() === filter);
+    const txt = chip.textContent.trim();
+    // 兼容带 emoji 前缀的 chip（如 "✨ 我的灵感"），用 includes 而非完全相等
+    chip.classList.toggle('on', !!filter && (txt === filter || txt.includes(filter)));
   });
 }

@@ -76,6 +76,12 @@ function renderGallery(filter) {
     }
     return;
   }
+  // 我的灵感：渲染用户自己的设计（灵感/AI 生成）
+  if (filter === '我的灵感') {
+    grid.className = 'gallery-grid';
+    renderMyInspirationGallery(grid);
+    return;
+  }
   grid.className = 'gallery-grid';
   const items = galleryItemsByFilter(filter);
   grid.innerHTML = items.map((s,i) => `
@@ -146,4 +152,53 @@ function renderSearchResults(query) {
         </div>
       </div>
     </div>`).join('');
+}
+
+// ── 我的灵感 Tab ─────────────────────
+async function renderMyInspirationGallery(grid) {
+  // 先显示空骨架，避免闪烁
+  grid.innerHTML = '<div style="grid-column:1/-1;padding:24px;text-align:center;color:var(--text-soft);font-size:13px">加载中…</div>';
+
+  // 拉取最新「我的设计」（包含灵感 + AI 生成）
+  if (typeof loadMyDesigns === 'function') {
+    try { await loadMyDesigns(); } catch (e) {}
+  }
+  const list = (typeof myDesigns !== 'undefined') ? myDesigns : [];
+  // 只显示能试戴的款式（即有 design_id 的灵感/AI 款式）
+  const playable = list.filter(d => d.design_id && (d.design_id.startsWith('insp_') || d.design_id.startsWith('gen_')));
+
+  if (!playable.length) {
+    grid.innerHTML = `
+      <div style="grid-column:1/-1;padding:48px 24px;text-align:center">
+        <div style="font-size:42px;margin-bottom:12px">✨</div>
+        <div style="font-size:15px;font-weight:700;color:var(--text-dark);margin-bottom:6px">还没有自己的灵感</div>
+        <div style="font-size:12px;color:var(--text-soft);line-height:1.6;margin-bottom:18px">
+          去「以图试戴」上传灵感图，<br>或在「AI 设计」生成专属款式
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center">
+          <button class="btn-primary" style="padding:10px 20px;font-size:13px" onclick="go('s-imgsearch')">上传灵感图</button>
+          <button class="btn-primary" style="padding:10px 20px;font-size:13px" onclick="go('s-design-gen')">AI 设计</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = playable.map(d => {
+    const img = (typeof _mdResolveImg === 'function') ? _mdResolveImg(d.image_url) : (d.image_url || '');
+    const sub = d.style || (d.scenes && d.scenes[0]) || (d.design_id.startsWith('gen_') ? 'AI 生成' : '灵感款式');
+    return `
+      <div class="g-card card-press" onclick="tryonFromMyDesign(${d.id})">
+        <div class="g-thumb" style="background:#FFF0F5">
+          ${img ? `<img src="${img}" alt="${d.name}">` : '✨'}
+          <div class="rank-badge" style="background:var(--gradient-bubblegum)">${d.design_id.startsWith('gen_') ? 'AI' : '灵感'}</div>
+        </div>
+        <div class="g-info">
+          <div class="g-name">${d.name || '我的设计'}</div>
+          <div class="g-meta">
+            <span class="g-price">${sub}</span>
+            <span class="g-heat" style="color:var(--orange);font-weight:700">点击试戴 →</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
 }
