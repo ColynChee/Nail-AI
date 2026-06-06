@@ -217,9 +217,19 @@ async function deleteCurrentDesign() {
 
 // 供 AI 设计页调用：保存生成的款式
 async function saveAiDesignToMine(imageUrl, name, description) {
+  // 前置校验：未登录直接拦截
+  const cid = mdClientId();
+  if (!cid) {
+    if (typeof showToast === 'function') showToast('请先登录');
+    return false;
+  }
+  if (!imageUrl) {
+    if (typeof showToast === 'function') showToast('图片地址为空，保存失败');
+    return false;
+  }
   try {
     const body = {
-      client_id: mdClientId(),
+      client_id: cid,
       source: 'ai',
       image_url: imageUrl,        // 相对路径
       name: name || 'AI 生成款式',
@@ -228,12 +238,24 @@ async function saveAiDesignToMine(imageUrl, name, description) {
     const res = await fetch(`${MD_API_BASE}/api/user-designs`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (!res.ok) {
+      // 把后端的错误细节带出来，方便诊断
+      let detail = '';
+      try { detail = (await res.json()).detail || ''; } catch (e) {}
+      throw new Error(`HTTP ${res.status}${detail ? ' · ' + detail : ''}`);
+    }
     if (typeof showToast === 'function') showToast('已保存到我的设计 ✨');
+    // 保存成功后立即切到「我的」→ 我的设计 Tab，让用户能看到刚保存的款式
+    setTimeout(() => {
+      if (typeof go === 'function') go('s-wishlist');
+      setTimeout(() => {
+        if (typeof switchCollectionTab === 'function') switchCollectionTab('mydesigns');
+      }, 100);
+    }, 800);
     return true;
   } catch (e) {
     console.error('[MyDesigns] AI保存失败:', e);
-    if (typeof showToast === 'function') showToast('保存失败，请重试');
+    if (typeof showToast === 'function') showToast('保存失败: ' + (e.message || '未知错误'));
     return false;
   }
 }
