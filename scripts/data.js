@@ -36,7 +36,7 @@ let userProfile = {
 let currentDetail = { emoji:'🌸', name:'樱花奶油', price:'¥199', bg:'#FFF0F5' };
 let prevScreen = 's-home';
 let currentFilter = '全部';
-let tryonStyleInfo = { emoji:'🌸', name:'樱花奶油', price:'¥199', bg:'#FFF0F5' };
+let tryonStyleInfo = { emoji:'', name:'', price:'', bg:'', image:'', designId:'' };
 
 // 后端地址（与 try-on.js 的 API_BASE 一致）
 const DESIGNS_API = window.API_BASE + '/api/designs';
@@ -294,10 +294,8 @@ async function loadDesignsFromBackend() {
     // 刷新依赖 STYLES 的视图
     if (typeof renderGallery === 'function') renderGallery(currentFilter || '全部');
     if (typeof renderHomeRecommendations === 'function') renderHomeRecommendations();
-    if (STYLES[0] && typeof setTryonStyle === 'function') {
-      const s = STYLES[0];
-      setTryonStyle(s.emoji, s.name, s.price, s.bg, s.image);
-    }
+    // 注意：不再自动给试戴页设默认款式，要等用户主动从图库选择
+    if (typeof _refreshStyleCard === 'function') _refreshStyleCard();
   } catch (e) {
     console.warn('[Designs] 后端加载失败，使用内置 12 款兜底:', e.message);
     if (typeof renderHomeRecommendations === 'function') renderHomeRecommendations();

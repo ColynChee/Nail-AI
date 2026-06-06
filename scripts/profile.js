@@ -18,10 +18,15 @@ function applyProfile() {
   userProfile.bookingCount = bookings.length;
   userProfile.tryonCount = tryonHistory.length;
 
-  document.getElementById('home-hello').textContent = `下午好，${name} ✨`;
+  // 昵称太长截断，避免破坏首页布局
+  const shortName = name.length > 8 ? name.slice(0, 8) + '…' : name;
+  // 按真实时间动态打招呼
+  const hr = new Date().getHours();
+  const greet = hr < 6 ? '凌晨好' : hr < 11 ? '早上好' : hr < 14 ? '中午好' : hr < 18 ? '下午好' : hr < 22 ? '晚上好' : '夜深了';
+  document.getElementById('home-hello').textContent = `${greet}，${shortName} ✨`;
   document.getElementById('home-avatar').textContent = avatar;
   document.getElementById('profile-avatar').textContent = avatar;
-  document.getElementById('profile-name').textContent = name;
+  document.getElementById('profile-name').textContent = name.length > 12 ? name.slice(0, 12) + '…' : name;
   document.getElementById('profile-sub').textContent = `${age}岁 · ${skinProfile.label} · ${bio}`;
   const ageNode = document.getElementById('profile-age');
   if (ageNode) ageNode.textContent = `${age}`;

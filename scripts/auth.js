@@ -176,6 +176,12 @@ async function submitAuth() {
   const btn = document.getElementById('auth-submit');
   errEl.textContent = '';
   if (!username || !password) { errEl.textContent = '请输入用户名和密码'; return; }
+  // 仅注册时做规则校验（登录不强求，避免老账号设过弱密码无法登录）
+  if (_authMode === 'register') {
+    if (username.length < 2) { errEl.textContent = '用户名至少 2 个字符'; return; }
+    if (username.length > 30) { errEl.textContent = '用户名不能超过 30 个字符'; return; }
+    if (password.length < 4) { errEl.textContent = '密码至少 4 位'; return; }
+  }
   btn.disabled = true;
   btn.textContent = _authMode === 'login' ? '登录中…' : '注册中…';
   try {
