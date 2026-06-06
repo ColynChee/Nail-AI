@@ -113,9 +113,24 @@ function _resetProfileForAccount(username) {
 // 登录/注册成功后进入 App
 async function enterAppAfterAuth(opts) {
   opts = opts || {};
+  // 切换账号先清掉上个账号的本地缓存（除了刚设置的 session）
+  // 新账号注册前如果有本地收藏，先迁移到新账号
+  if (opts.isNew) {
+    await migrateLocalWishlistToServer();
+  }
+  // 然后清空所有本地用户数据缓存
+  try {
+    localStorage.removeItem(STORAGE_KEYS.wishlist);
+    localStorage.removeItem(STORAGE_KEYS.bookings);
+    localStorage.removeItem(STORAGE_KEYS.tryonHistory);
+    localStorage.removeItem(STORAGE_KEYS.imageTryonHistory);
+  } catch (e) {}
+  wishlist = [];
+  if (typeof bookings !== 'undefined') bookings = [];
+  if (typeof tryonHistory !== 'undefined') tryonHistory = [];
+  if (typeof imageTryonHistory !== 'undefined') imageTryonHistory = [];
   // 切换账号先重置资料：新账号用用户名当昵称，登录则清掉旧本地资料等后端覆盖
   _resetProfileForAccount(opts.isNew ? opts.username : null);
-  await migrateLocalWishlistToServer();
   if (typeof bootApp === 'function') await bootApp();
   // 新账号：把用户名作为昵称同步到后端持久化
   if (opts.isNew && typeof syncProfileToBackend === 'function') {
@@ -126,7 +141,19 @@ async function enterAppAfterAuth(opts) {
 
 function doLogout() {
   clearSession();
+  // 清掉所有用户私人数据的本地缓存，避免下个账号看到上个人的数据
+  try {
+    localStorage.removeItem(STORAGE_KEYS.wishlist);
+    localStorage.removeItem(STORAGE_KEYS.profile);
+    localStorage.removeItem(STORAGE_KEYS.bookings);
+    localStorage.removeItem(STORAGE_KEYS.tryonHistory);
+    localStorage.removeItem(STORAGE_KEYS.imageTryonHistory);
+  } catch (e) {}
+  // 重置内存里的状态
   wishlist = [];
+  if (typeof bookings !== 'undefined') bookings = [];
+  if (typeof tryonHistory !== 'undefined') tryonHistory = [];
+  if (typeof imageTryonHistory !== 'undefined') imageTryonHistory = [];
   if (typeof renderWishlist === 'function') renderWishlist();
   if (typeof go === 'function') go('s-login');
 }
