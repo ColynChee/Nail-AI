@@ -114,6 +114,17 @@ async function generateDesign() {
   }
 }
 
+// 把任意值强制转成字符串，避免对象/数字混进请求体触发 422
+function _toStr(v) {
+  if (v == null) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'object') {
+    // DeepSeek/Qwen 有时返回 {description: "..."} 这种结构，挑常见字段
+    return _toStr(v.description || v.text || v.content || v.optimized) || JSON.stringify(v);
+  }
+  return String(v);
+}
+
 async function saveGeneratedToMine() {
   if (!currentDesign) return;
   if (typeof saveAiDesignToMine !== 'function') {
@@ -121,10 +132,14 @@ async function saveGeneratedToMine() {
     return;
   }
   // currentDesign.preview 是绝对URL，转成相对路径存库
-  const relativeUrl = currentDesign.preview.replace(DESIGN_API_BASE, '');
+  const previewStr = _toStr(currentDesign.preview);
+  const relativeUrl = previewStr.replace(DESIGN_API_BASE, '');
+  // 强制类型清洗：保证 name/description 都是字符串
+  const promptStr = _toStr(currentDesign.prompt);
+  const optimizedStr = _toStr(currentDesign.optimized);
   // name 用用户输入的 prompt（短），description 用 DeepSeek 优化后的详细描述（长）
-  const shortName = (currentDesign.prompt || 'AI 生成款式').slice(0, 30);
-  await saveAiDesignToMine(relativeUrl, shortName, currentDesign.optimized || currentDesign.prompt || '');
+  const shortName = (promptStr || 'AI 生成款式').slice(0, 30);
+  await saveAiDesignToMine(relativeUrl, shortName, optimizedStr || promptStr || '');
 }
 
 function showDesignPreview() {

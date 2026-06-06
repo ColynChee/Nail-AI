@@ -239,10 +239,20 @@ async function saveAiDesignToMine(imageUrl, name, description) {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     });
     if (!res.ok) {
-      // 把后端的错误细节带出来，方便诊断
-      let detail = '';
-      try { detail = (await res.json()).detail || ''; } catch (e) {}
-      throw new Error(`HTTP ${res.status}${detail ? ' · ' + detail : ''}`);
+      // 把后端的错误细节带出来，方便诊断（422 时 detail 是数组对象）
+      let detailStr = '';
+      try {
+        const j = await res.json();
+        const d = j.detail;
+        if (typeof d === 'string') detailStr = d;
+        else if (Array.isArray(d)) {
+          // FastAPI 验证错误格式：[{loc:[...], msg:"...", type:"..."}]
+          detailStr = d.map(x => `${(x.loc||[]).join('.')}: ${x.msg || x.type}`).join('; ');
+        }
+        else if (d) detailStr = JSON.stringify(d);
+      } catch (e) {}
+      console.error('[MyDesigns] 后端返回:', res.status, detailStr, 'body:', JSON.stringify(body));
+      throw new Error(`HTTP ${res.status}${detailStr ? ' · ' + detailStr : ''}`);
     }
     if (typeof showToast === 'function') showToast('已保存到我的设计 ✨');
     // 保存成功后立即切到「我的」→ 我的设计 Tab，让用户能看到刚保存的款式
