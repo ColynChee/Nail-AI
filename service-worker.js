@@ -1,13 +1,13 @@
 /* 指上谈兵 PWA Service Worker */
 // 改版本号会让所有用户拿到新缓存（每次大改 CSS/JS 都 bump 这里）
-const CACHE = 'zhishangtanbing-v2-bubblegum';
+const CACHE = 'zhishangtanbing-v3';
 
 // 预缓存应用外壳（核心静态文件）
 const SHELL = [
   './',
   './nailai.html',
   './manifest.json',
-  './styles/main.css?v=bubblegum1',
+  './styles/main.css?v=v2',
   './assets/logo-nobg.png',
   './assets/icon-192.png',
   './assets/icon-512.png',
@@ -38,7 +38,21 @@ self.addEventListener('fetch', (e) => {
   if (url.pathname.includes('/api/')) return;
   if (url.origin !== self.location.origin) return;
 
-  // 静态资源：缓存优先，回退网络，并把新资源写入缓存
+  // CSS / JS：网络优先（拿最新代码），离线时回退缓存
+  if (url.pathname.endsWith('.css') || url.pathname.endsWith('.js')) {
+    e.respondWith(
+      fetch(req).then((res) => {
+        if (res && res.status === 200) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy));
+        }
+        return res;
+      }).catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  // 图片 / HTML 等静态资源：缓存优先，回退网络
   e.respondWith(
     caches.match(req).then((cached) => {
       if (cached) return cached;

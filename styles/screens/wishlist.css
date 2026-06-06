@@ -12,6 +12,12 @@
 .wl-row{display:flex;justify-content:space-between;align-items:center;margin-top:4px}
 .wl-price{font-size:11px;font-weight:700;color:var(--orange)}
 .wl-del{background:none;border:none;cursor:pointer;font-size:14px;color:var(--text-soft);padding:2px 4px}
+.wl-try{
+  background:var(--gradient-bubblegum);color:#fff;border:none;border-radius:var(--rPill);
+  padding:5px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;
+  box-shadow:0 2px 8px rgba(255,143,171,.3);
+}
+.wl-try:active{opacity:.85}
 .wishlist-empty{display:flex;flex-direction:column;align-items:center;padding:60px 20px;gap:12px;text-align:center}
 .wishlist-empty .empty-icon{font-size:58px}
 .wishlist-empty h3{font-size:16px;font-weight:700;color:var(--text-dark)}

@@ -119,6 +119,7 @@ class WishlistItemRequest(BaseModel):
     price: Optional[str] = None
     bg: Optional[str] = None
     image: Optional[str] = None
+    design_id: Optional[str] = None
 
 
 def _new_salt() -> str:
@@ -1215,7 +1216,7 @@ async def list_wishlist(client_id: str):
     try:
         async with pool.acquire() as conn:
             rows = await conn.fetch(
-                "SELECT name, emoji, price, bg, image FROM user_wishlist WHERE client_id = $1 ORDER BY created_at DESC",
+                "SELECT name, emoji, price, bg, image, design_id FROM user_wishlist WHERE client_id = $1 ORDER BY created_at DESC",
                 client_id,
             )
         return {"success": True, "items": [dict(r) for r in rows]}
@@ -1235,15 +1236,15 @@ async def add_wishlist(payload: WishlistItemRequest):
         async with pool.acquire() as conn:
             row = await conn.fetchrow(
                 """
-                INSERT INTO user_wishlist (client_id, name, emoji, price, bg, image)
-                VALUES ($1, $2, $3, $4, $5, $6)
+                INSERT INTO user_wishlist (client_id, name, emoji, price, bg, image, design_id)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
                 ON CONFLICT (client_id, name) DO UPDATE SET
                   emoji = EXCLUDED.emoji, price = EXCLUDED.price,
-                  bg = EXCLUDED.bg, image = EXCLUDED.image
-                RETURNING name, emoji, price, bg, image
+                  bg = EXCLUDED.bg, image = EXCLUDED.image, design_id = EXCLUDED.design_id
+                RETURNING name, emoji, price, bg, image, design_id
                 """,
                 payload.client_id, payload.name, payload.emoji,
-                payload.price, payload.bg, payload.image,
+                payload.price, payload.bg, payload.image, payload.design_id,
             )
         return {"success": True, "item": dict(row)}
     except Exception as e:

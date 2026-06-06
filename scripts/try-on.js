@@ -1177,7 +1177,12 @@ function resetTryon() {
 
 // ── 收藏 ──────────────────────────────
 function saveTryonToWishlist() {
-  addToWishlist(tryonStyleInfo.emoji, tryonStyleInfo.name, tryonStyleInfo.price, tryonStyleInfo.bg, tryonStyleInfo.image);
+  if (!tryonStyleInfo || !tryonStyleInfo.name) {
+    showToast('请先选择款式');
+    return;
+  }
+  addToWishlist(tryonStyleInfo.emoji, tryonStyleInfo.name, tryonStyleInfo.price,
+                tryonStyleInfo.bg, tryonStyleInfo.image, tryonStyleInfo.designId);
   showToast('已保存到收藏 ✓');
 }
 

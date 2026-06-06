@@ -85,6 +85,7 @@ async function loadWishlistFromServer() {
     const data = await res.json();
     wishlist = (data.items || []).map(i => ({
       emoji: i.emoji || '', name: i.name, price: i.price || '', bg: i.bg || '', image: i.image || '',
+      designId: i.design_id || '',
     }));
     if (typeof saveWishlistState === 'function') saveWishlistState();
   } catch (e) {

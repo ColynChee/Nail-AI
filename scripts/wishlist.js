@@ -3,6 +3,19 @@
 ══════════════════════════════════ */
 const WISHLIST_API_BASE = window.API_BASE;
 
+// 把存储的图片地址解析成可显示的 URL：
+// - base64 / 完整 http URL：原样
+// - 后端托管路径（/designs_generated /user_designs /molds 开头）：补上 API_BASE
+// - 其它相对路径（款式图/xxx）：前端直接可访问，原样
+function resolveImageSrc(img) {
+  if (!img) return '';
+  if (img.startsWith('data:') || img.startsWith('http')) return img;
+  if (img.startsWith('/designs_generated') || img.startsWith('/user_designs') || img.startsWith('/molds')) {
+    return window.API_BASE + img;
+  }
+  return img;
+}
+
 // 收藏同步失败时，把待办存进 localStorage，App 启动或恢复网络时重试
 const _PENDING_KEY = 'nailai-wishlist-pending';
 function _readPending() {
@@ -74,19 +87,20 @@ if (typeof window !== 'undefined') {
   window.addEventListener('online', () => flushPendingWishlistOps());
 }
 
-function addToWishlist(emoji, name, price, bg, image) {
+function addToWishlist(emoji, name, price, bg, image, designId) {
   if (!wishlist.find(w => w.name === name)) {
-    wishlist.push({ emoji, name, price, bg, image: image || '' });
+    const item = { emoji, name, price, bg, image: image || '', designId: designId || '' };
+    wishlist.push(item);
     saveWishlistState();
     updateProfileCounts();
-    _wishlistSyncAdd({ name, emoji, price, bg, image: image || '' });
+    _wishlistSyncAdd({ name, emoji, price, bg, image: image || '', design_id: designId || '' });
   }
 }
 
-function toggleHeart(btn, name, emoji, price, bg, image) {
+function toggleHeart(btn, name, emoji, price, bg, image, designId) {
   btn.classList.toggle('liked');
   if (btn.classList.contains('liked')) {
-    addToWishlist(emoji, name, price, bg, image);
+    addToWishlist(emoji, name, price, bg, image, designId);
     showToast('已添加到收藏 ♥');
   } else {
     wishlist = wishlist.filter(w => w.name !== name);
@@ -106,19 +120,34 @@ function renderWishlist() {
     return;
   }
   empty.style.display = 'none';
-  grid.innerHTML = wishlist.map((w,i) => `
-    <div class="wl-card card-press" onclick="goDetail('${w.emoji}','${w.name}','收藏·推荐','${w.price}','${w.bg}','${w.image || ''}')">
-      <div class="wl-thumb" style="background:${w.bg}">
-        ${w.image ? `<img src="${w.image}" alt="${w.name}">` : w.emoji}
+  grid.innerHTML = wishlist.map((w,i) => {
+    const src = resolveImageSrc(w.image);
+    return `
+    <div class="wl-card card-press">
+      <div class="wl-thumb" style="background:${w.bg}" onclick="goDetail('${w.emoji}','${w.name}','收藏·推荐','${w.price}','${w.bg}','${src}','${w.designId || ''}')">
+        ${src ? `<img src="${src}" alt="${w.name}">` : w.emoji}
       </div>
       <div class="wl-info">
         <div class="wl-name">${w.name}</div>
         <div class="wl-row">
-          <span class="wl-price">${w.price}</span>
+          <button class="wl-try" onclick="event.stopPropagation();tryonFromWishlist(${i})">试戴</button>
           <button class="wl-del" onclick="event.stopPropagation();removeWishlist(${i})">✕</button>
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+}
+
+// 从收藏直接重新试戴该款式
+function tryonFromWishlist(i) {
+  const w = wishlist[i];
+  if (!w) return;
+  if (typeof setTryonStyle === 'function') {
+    setTryonStyle(w.emoji || '✨', w.name, w.price || 0, w.bg || '#FFF0F5',
+                  resolveImageSrc(w.image), w.designId || '');
+  }
+  if (typeof go === 'function') go('s-tryon');
+  if (typeof showToast === 'function') showToast('请上传手部照片开始试戴 ✨');
 }
 
 function removeWishlist(i) {
