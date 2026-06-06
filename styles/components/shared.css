@@ -37,10 +37,11 @@
 
 /* CTA buttons */
 .btn-primary{
-  border:none;background:var(--orange);color:#fff;
+  border:none;background:var(--gradient-bubblegum);color:#fff;
   border-radius:var(--rMd);padding:14px;
   font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;
   transition:opacity .15s;
+  box-shadow:0 4px 14px rgba(255,143,171,.35);
 }
 .btn-primary:active{opacity:.85}
 .btn-outline{

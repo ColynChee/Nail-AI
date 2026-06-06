@@ -12,7 +12,7 @@
    TOP NAV
 ═══════════════════════════════════════ */
 .topnav{
-  background:var(--orange);
+  background:var(--gradient-bubblegum);
   padding:28px 10px 10px;
   display:flex;align-items:center;gap:9px;
   flex-shrink:0;

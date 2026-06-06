@@ -15,7 +15,7 @@
 
 /* Hero */
 .hero{
-  background:var(--orange);border-radius:var(--rLg);
+  background:var(--gradient-bubblegum);border-radius:var(--rLg);
   padding:18px 16px;margin-bottom:16px;
   display:flex;justify-content:space-between;align-items:center;
   cursor:pointer;position:relative;overflow:hidden;
