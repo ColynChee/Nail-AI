@@ -139,7 +139,8 @@ async function saveGeneratedToMine() {
   const optimizedStr = _toStr(currentDesign.optimized);
   // name 用用户输入的 prompt（短），description 用 DeepSeek 优化后的详细描述（长）
   const shortName = (promptStr || 'AI 生成款式').slice(0, 30);
-  await saveAiDesignToMine(relativeUrl, shortName, optimizedStr || promptStr || '');
+  // 传 currentDesign.id（gen_xxx），让「我的设计」能重新试戴
+  await saveAiDesignToMine(relativeUrl, shortName, optimizedStr || promptStr || '', currentDesign.id || '');
 }
 
 function showDesignPreview() {

@@ -1181,9 +1181,17 @@ function saveTryonToWishlist() {
     showToast('请先选择款式');
     return;
   }
-  addToWishlist(tryonStyleInfo.emoji, tryonStyleInfo.name, tryonStyleInfo.price,
-                tryonStyleInfo.bg, tryonStyleInfo.image, tryonStyleInfo.designId);
-  showToast('已保存到收藏 ✓');
+  const did = tryonStyleInfo.designId || '';
+  // 灵感/AI 生成的款式 = 用户自己的设计，存到「我的设计」；图库款式存「收藏的款式」
+  const isOwnDesign = did.startsWith('insp_') || did.startsWith('gen_');
+  if (isOwnDesign && typeof saveAiDesignToMine === 'function') {
+    saveAiDesignToMine(tryonStyleInfo.image, tryonStyleInfo.name, '', did);
+    // saveAiDesignToMine 内部会 toast 并跳到「我的设计」Tab
+  } else {
+    addToWishlist(tryonStyleInfo.emoji, tryonStyleInfo.name, tryonStyleInfo.price,
+                  tryonStyleInfo.bg, tryonStyleInfo.image, did);
+    showToast('已保存到收藏 ✓');
+  }
 }
 
 // ── 页面切换时检查生成的设计 ──────────

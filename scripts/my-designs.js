@@ -52,21 +52,44 @@ function renderMyDesigns() {
   }
   if (empty) empty.style.display = 'none';
   grid.innerHTML = myDesigns.map(d => {
-    const img = d.image_url ? `${MD_API_BASE}${d.image_url}` : '';
-    const sub = d.style || (d.scenes && d.scenes[0]) || '我的设计';
+    const img = _mdResolveImg(d.image_url);
+    const canTryon = d.design_id && (d.design_id.startsWith('gen_') || d.design_id.startsWith('insp_'));
     return `
-      <div class="wl-card card-press" onclick="openDesignEdit(${d.id})">
-        <div class="wl-thumb" style="background:#FFF0F5">
+      <div class="wl-card card-press">
+        <div class="wl-thumb" style="background:#FFF0F5" onclick="openDesignEdit(${d.id})">
           ${img ? `<img src="${img}" alt="${d.name}">` : '✨'}
         </div>
         <div class="wl-info">
           <div class="wl-name">${d.name || '我的设计'}</div>
           <div class="wl-row">
-            <span class="wl-price" style="font-size:11px;color:var(--text-soft);font-weight:600">${sub}</span>
+            ${canTryon ? `<button class="wl-try" onclick="event.stopPropagation();tryonFromMyDesign(${d.id})">试戴</button>` : '<span style="font-size:11px;color:var(--text-soft)">已保存</span>'}
+            <button class="wl-del" onclick="event.stopPropagation();openDesignEdit(${d.id})" title="编辑">✎</button>
           </div>
         </div>
       </div>`;
   }).join('');
+}
+
+// 解析我的设计图片：base64/http 原样；后端相对路径补 API_BASE
+function _mdResolveImg(url) {
+  if (!url) return '';
+  if (url.startsWith('data:') || url.startsWith('http')) return url;
+  return MD_API_BASE + url;
+}
+
+// 从「我的设计」重新试戴
+function tryonFromMyDesign(id) {
+  const d = myDesigns.find(x => x.id === id);
+  if (!d) return;
+  if (!d.design_id) {
+    if (typeof showToast === 'function') showToast('该款式不支持试戴');
+    return;
+  }
+  if (typeof setTryonStyle === 'function') {
+    setTryonStyle('✨', d.name || '我的设计', 0, '#FFF9E6', _mdResolveImg(d.image_url), d.design_id);
+  }
+  if (typeof go === 'function') go('s-tryon');
+  if (typeof showToast === 'function') showToast('请上传手部照片开始试戴 ✨');
 }
 
 // ── 上传流程 ──────────────────────────
@@ -215,15 +238,16 @@ async function deleteCurrentDesign() {
   }
 }
 
-// 供 AI 设计页调用：保存生成的款式
-async function saveAiDesignToMine(imageUrl, name, description) {
+// 供 AI 设计页 / 灵感试戴调用：保存生成的款式到「我的设计」
+// img 可以是相对路径（/designs_generated/..）或 base64 data URL（灵感模具预览）
+async function saveAiDesignToMine(img, name, description, designId) {
   // 前置校验：未登录直接拦截
   const cid = mdClientId();
   if (!cid) {
     if (typeof showToast === 'function') showToast('请先登录');
     return false;
   }
-  if (!imageUrl) {
+  if (!img) {
     if (typeof showToast === 'function') showToast('图片地址为空，保存失败');
     return false;
   }
@@ -231,10 +255,16 @@ async function saveAiDesignToMine(imageUrl, name, description) {
     const body = {
       client_id: cid,
       source: 'ai',
-      image_url: imageUrl,        // 相对路径
       name: name || 'AI 生成款式',
       description: description || '',
+      design_id: designId || '',
     };
+    // base64 走 image_data（后端落盘），相对路径走 image_url（复用已托管图）
+    if (img.startsWith('data:')) {
+      body.image_data = img;
+    } else {
+      body.image_url = img;
+    }
     const res = await fetch(`${MD_API_BASE}/api/user-designs`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     });

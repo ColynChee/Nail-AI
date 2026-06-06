@@ -96,6 +96,7 @@ class UserDesignCreateRequest(BaseModel):
     recommended_colors: Optional[List[str]] = None
     description: Optional[str] = None
     tags: Optional[List[str]] = None
+    design_id: Optional[str] = None      # 后端款式ID（gen_/insp_，用于重新试戴）
 
 
 class UserDesignUpdateRequest(BaseModel):
@@ -216,6 +217,7 @@ def _user_design_row_to_payload(row) -> Dict:
         "name": row["name"],
         "image_url": row["image_url"],
         "source": row["source"],
+        "design_id": row["design_id"] if "design_id" in row else None,
         "style": row["style"],
         "scenes": _jsonb_to_list(row["scenes"]),
         "recommended_colors": _jsonb_to_list(row["recommended_colors"]),
@@ -1016,10 +1018,10 @@ async def create_user_design(payload: UserDesignCreateRequest):
                 """
                 INSERT INTO user_designs (
                   client_id, name, image_url, source,
-                  style, scenes, recommended_colors, description, tags, updated_at
+                  style, scenes, recommended_colors, description, tags, design_id, updated_at
                 ) VALUES (
                   $1, $2, $3, $4,
-                  $5, $6::jsonb, $7::jsonb, $8, $9::jsonb, now()
+                  $5, $6::jsonb, $7::jsonb, $8, $9::jsonb, $10, now()
                 )
                 RETURNING *
                 """,
@@ -1032,6 +1034,7 @@ async def create_user_design(payload: UserDesignCreateRequest):
                 json.dumps(payload.recommended_colors or []),
                 payload.description,
                 json.dumps(payload.tags or []),
+                payload.design_id,
             )
         return {"success": True, "design": _user_design_row_to_payload(row)}
     except Exception as e:
