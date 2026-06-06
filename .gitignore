@@ -47,3 +47,5 @@ __pycache__/
 # 运行时数据 / 测试产物
 backend/analytics_log.json
 backend/molds/gen_*/
+backend/molds/insp_*/
+backend/designs_generated/
