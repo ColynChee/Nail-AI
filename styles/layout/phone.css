@@ -15,6 +15,20 @@
     0 4px 20px rgba(44,24,16,0.1);
 }
 
+/* 真实手机视口（≤480px）：phone 壳变成全屏，去掉桌面装饰边框 */
+@media (max-width: 480px){
+  body{padding:0; background:var(--warm-gray)}
+  .phone{
+    width:100vw;
+    height:100vh;
+    height:100dvh;          /* iOS 动态视口高度 */
+    border-radius:0;
+    border:none;
+    box-shadow:none;
+  }
+  .screen{height:100vh; height:100dvh}
+}
+
 /* ═══════════════════════════════════════
    SCREENS
 ═══════════════════════════════════════ */

@@ -18,6 +18,8 @@ async function bootApp() {
   // 收藏从服务端加载（失败回退本地缓存）
   if (typeof loadWishlistFromServer === 'function') await loadWishlistFromServer();
   else renderWishlist();
+  // 重试之前因网络问题未同步的收藏操作
+  if (typeof flushPendingWishlistOps === 'function') flushPendingWishlistOps();
   // no default style — user must pick one from the gallery
   if (typeof syncProfileToBackend === 'function') {
     syncProfileToBackend().catch(error => console.warn('[Profile] initial sync failed:', error.message));

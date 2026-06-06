@@ -166,6 +166,11 @@ function _refreshStyleCard() {
   const hasSelection = tryonStyleInfo && tryonStyleInfo.name;
   if (noStyle) noStyle.style.display = hasSelection ? 'none' : 'flex';
   if (hasStyle) hasStyle.style.display = hasSelection ? 'flex' : 'none';
+  // 未选款式时隐藏上传区和小贴士，让 UI 聚焦在"先选款式"上
+  const upload = document.getElementById('tryon-upload');
+  const tips = document.getElementById('tryon-tips');
+  if (upload) upload.style.display = hasSelection ? 'flex' : 'none';
+  if (tips) tips.style.display = hasSelection ? 'block' : 'none';
 }
 
 function clearTryonStyle() {
@@ -633,6 +638,12 @@ async function requestTryOn(file, designImageOrId, color, skipAnalysis = false, 
 
 // ── 主流程 ────────────────────────────
 async function startTryon() {
+  // 必须先选款式
+  if (!tryonStyleInfo || !tryonStyleInfo.name) {
+    if (typeof showToast === 'function') showToast('请先选择想试戴的款式');
+    if (typeof go === 'function') go('s-gallery');
+    return;
+  }
   const fileInput = document.getElementById('tryon-file');
   const file = fileInput.files[0];
   if (!file) return;
