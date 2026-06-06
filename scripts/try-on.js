@@ -12,6 +12,8 @@ let isGeneratedDesign = false;  // 标记是否是 AI 生成的设计
 
 // 灵感图生成的design_id
 let inspirationDesignId = null;
+// 灵感模具预览图（base64 data URL），用于试戴页款式图框显示
+let inspirationPreviewSrc = '';
 
 // ── 灵感图试戴 ─────────────────────────
 async function handleInspirationUpload(event) {
@@ -70,13 +72,15 @@ async function handleInspirationUpload(event) {
 
         // 显示预览图
         const previewImg = document.getElementById('inspiration-template-preview');
-        previewImg.src = `data:image/jpeg;base64,${data.template_base64}`;
+        const previewSrc = `data:image/jpeg;base64,${data.template_base64}`;
+        previewImg.src = previewSrc;
 
         // 显示设计描述
         document.getElementById('inspiration-design-desc').textContent = `🎨 ${data.design_description}`;
 
-        // 保存design_id供试戴使用
+        // 保存design_id和预览图供试戴使用
         inspirationDesignId = data.design_id;
+        inspirationPreviewSrc = previewSrc;
       }, 500);
     } else {
       loadingEl.style.display = 'none';
@@ -99,18 +103,8 @@ function startInspirationTryon() {
     return;
   }
 
-  // 设置款式为灵感图生成的款式
-  isGeneratedDesign = true;
-  tryonStyleInfo = {
-    name: '灵感款式',
-    emoji: '✨',
-    image: '',
-    designId: inspirationDesignId
-  };
-
-  // 更新UI显示
-  const nameEl = document.getElementById('tryon-style-name');
-  if (nameEl) nameEl.textContent = '灵感款式 ✨';
+  // 用 setTryonStyle 正确设置款式（含灵感模具预览图），它会同步图框和状态卡片
+  setTryonStyle('✨', '灵感款式', 0, '#FFF9E6', inspirationPreviewSrc, inspirationDesignId);
 
   // 跳转到试戴页面
   if (typeof go === 'function') go('s-tryon');
@@ -181,7 +175,9 @@ function clearTryonStyle() {
 
 function setTryonStyle(emoji, name, price, bg, image, designId = null) {
   tryonStyleInfo = { emoji, name, price, bg, image: image || '', designId: designId || '' };
-  isGeneratedDesign = !!designId;
+  // 只有真正 AI / 灵感生成的款式才用 design_id 走后端"AI 款式"分支；
+  // 图库款式的 designId 形如 'design_001'，应该用 image 路径走静态款式分支
+  isGeneratedDesign = !!designId && (designId.startsWith('gen_') || designId.startsWith('insp_'));
   console.log('[TryOn] 选中款式:', name, '| image:', image || '(空)', '| designId:', designId || '(空)');
   const box = document.getElementById('tryon-thumb-box');
   if (box) {
