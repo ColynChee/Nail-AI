@@ -162,11 +162,10 @@ function showDesignPreview() {
       </div>
 
       <!-- 操作按钮 -->
-      <div style="display:flex;gap:8px;margin-bottom:8px">
+      <div style="display:flex;gap:8px">
         <button class="btn-primary" style="flex:1" onclick="confirmDesign()">确认使用 →</button>
         <button style="flex:1;padding:10px;border:1px solid var(--border);background:var(--white);color:var(--text-dark);border-radius:var(--rMd);cursor:pointer" onclick="document.getElementById('gen-results').style.display='none';document.querySelector('#s-design-gen .scroll-body').scrollTo({top:0,behavior:'smooth'})">重新生成</button>
       </div>
-      <button style="width:100%;padding:10px;border:1px solid var(--orange);background:var(--white);color:var(--orange);border-radius:var(--rMd);cursor:pointer;font-weight:700;font-family:inherit" onclick="saveGeneratedToMine()">♡ 保存到我的设计</button>
     </div>
   `;
 
