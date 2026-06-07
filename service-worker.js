@@ -1,13 +1,13 @@
 /* 指上谈兵 PWA Service Worker */
 // 改版本号会让所有用户拿到新缓存（每次大改 CSS/JS 都 bump 这里）
-const CACHE = 'zhishangtanbing-v7';
+const CACHE = 'zhishangtanbing-v8';
 
 // 预缓存应用外壳（核心静态文件）
 const SHELL = [
   './',
   './nailai.html',
   './manifest.json',
-  './styles/main.css?v=v7',
+  './styles/main.css?v=v8',
   './assets/logo-nobg.png',
   './assets/icon-192.png',
   './assets/icon-512.png',

@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" href="assets/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles/main.css?v=v7">
+<link rel="stylesheet" href="styles/main.css?v=v8">
 </head>
 <body>
 <div class="phone" id="app">
@@ -864,6 +864,11 @@
         <div class="m-label">编辑资料</div>
         <div class="m-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
       </div>
+      <div class="menu-item" onclick="toggleLayoutMode()">
+        <div class="m-icon" style="background:var(--purple-light)"><svg viewBox="0 0 24 24" style="stroke:var(--purple)"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+        <div class="m-label">展示模式 <span id="layout-mode-label" style="color:var(--text-soft);font-weight:500;font-size:12px;margin-left:4px"></span></div>
+        <div class="m-arrow"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+      </div>
       <div class="menu-item" onclick="doLogout()">
         <div class="m-icon" style="background:#FFE9E6"><svg viewBox="0 0 24 24" style="stroke:#E0231C"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
         <div class="m-label" style="color:#E0231C">退出登录</div>
@@ -1257,30 +1262,30 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<script src="scripts/config.js?v=v7"></script>
-<script src="scripts/data.js?v=v7"></script>
-<script src="scripts/storage.js?v=v7"></script>
-<script src="scripts/auth.js?v=v7"></script>
-<script src="scripts/navigation.js?v=v7"></script>
-<script src="scripts/xhs-config.js?v=v7"></script>
-<script src="scripts/xhs-keyword-heat.js?v=v7"></script>
-<script src="scripts/trending.js?v=v7"></script>
+<script src="scripts/config.js?v=v8"></script>
+<script src="scripts/data.js?v=v8"></script>
+<script src="scripts/storage.js?v=v8"></script>
+<script src="scripts/auth.js?v=v8"></script>
+<script src="scripts/navigation.js?v=v8"></script>
+<script src="scripts/xhs-config.js?v=v8"></script>
+<script src="scripts/xhs-keyword-heat.js?v=v8"></script>
+<script src="scripts/trending.js?v=v8"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="scripts/ops.js?v=v7"></script>
-<script src="scripts/gallery.js?v=v7"></script>
-<script src="scripts/detail.js?v=v7"></script>
-<script src="scripts/try-on.js?v=v7"></script>
-<script src="scripts/image-search.js?v=v7"></script>
-<script src="scripts/design-gen.js?v=v7"></script>
-<script src="scripts/wishlist.js?v=v7"></script>
-<script src="scripts/my-designs.js?v=v7"></script>
-<script src="scripts/profile.js?v=v7"></script>
+<script src="scripts/ops.js?v=v8"></script>
+<script src="scripts/gallery.js?v=v8"></script>
+<script src="scripts/detail.js?v=v8"></script>
+<script src="scripts/try-on.js?v=v8"></script>
+<script src="scripts/image-search.js?v=v8"></script>
+<script src="scripts/design-gen.js?v=v8"></script>
+<script src="scripts/wishlist.js?v=v8"></script>
+<script src="scripts/my-designs.js?v=v8"></script>
+<script src="scripts/profile.js?v=v8"></script>
 <script>
   window.SKIN_ANALYSIS_ENDPOINT = 'http://localhost:8000/api/analyze-skin-tone';
 </script>
-<script src="scripts/skin-sheet.js?v=v7"></script>
-<script src="scripts/toast.js?v=v7"></script>
-<script src="scripts/init.js?v=v7"></script>
+<script src="scripts/skin-sheet.js?v=v8"></script>
+<script src="scripts/toast.js?v=v8"></script>
+<script src="scripts/init.js?v=v8"></script>
 <script>
   // 注册 Service Worker（PWA 离线 + 可安装）
   if ('serviceWorker' in navigator) {

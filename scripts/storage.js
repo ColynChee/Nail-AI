@@ -8,8 +8,41 @@ const STORAGE_KEYS = {
   bookings: 'nailai-bookings',
   tryonHistory: 'nailai-tryon-history',
   imageTryonHistory: 'nailai-image-tryon-history',
-  session: 'nailai-session'
+  session: 'nailai-session',
+  layoutMode: 'nailai-layout-mode',   // 'mobile' | 'desktop'
 };
+
+// ── 展示模式切换（手机壳窄 vs 桌面宽）──
+function getLayoutMode() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.layoutMode);
+    if (saved === 'mobile' || saved === 'desktop') return saved;
+  } catch (e) {}
+  // 默认：屏幕宽 > 900px 用桌面，否则手机
+  return (window.innerWidth > 900) ? 'desktop' : 'mobile';
+}
+
+function applyLayoutMode(mode) {
+  const html = document.documentElement;
+  if (mode === 'desktop') html.classList.add('layout-desktop');
+  else html.classList.remove('layout-desktop');
+  const label = document.getElementById('layout-mode-label');
+  if (label) label.textContent = mode === 'desktop' ? '桌面端' : '手机端';
+}
+
+function toggleLayoutMode() {
+  const next = (getLayoutMode() === 'desktop') ? 'mobile' : 'desktop';
+  try { localStorage.setItem(STORAGE_KEYS.layoutMode, next); } catch (e) {}
+  applyLayoutMode(next);
+  if (typeof showToast === 'function') {
+    showToast(next === 'desktop' ? '已切换到桌面端' : '已切换到手机端');
+  }
+}
+
+// 启动时立刻应用（不等 init 跑完，避免闪烁）
+(function _initLayout(){
+  try { applyLayoutMode(getLayoutMode()); } catch (e) {}
+})();
 
 // ── 登录会话 ──
 function getSession() {

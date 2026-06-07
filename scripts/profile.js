@@ -40,6 +40,10 @@ function applyProfile() {
   document.getElementById('profile-booking-count').textContent = userProfile.bookingCount;
   updateProfileCounts();
   if (typeof renderHomeRecommendations === 'function') renderHomeRecommendations();
+  // 刷新展示模式标签
+  if (typeof applyLayoutMode === 'function' && typeof getLayoutMode === 'function') {
+    applyLayoutMode(getLayoutMode());
+  }
 }
 
 function updateProfileCounts() {

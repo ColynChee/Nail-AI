@@ -29,6 +29,13 @@
   .screen{height:100vh; height:100dvh}
 }
 
+/* 桌面模式（手动切换）：手机壳变宽，让桌面用户看更多内容 */
+html.layout-desktop .phone{
+  width:540px;
+  height:880px;
+}
+html.layout-desktop .screen{height:880px}
+
 /* ═══════════════════════════════════════
    SCREENS
 ═══════════════════════════════════════ */
