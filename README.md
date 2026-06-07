@@ -20,7 +20,7 @@
 
 ### 💅 虚拟试戴
 - **智能指甲分割**：YOLOv8-seg 精确检测用户指甲（支持张开手和握拳）
-- **参数化指甲形状**：圆形/尖形/方形，可调长宽比和旋转角度
+- **参数化指甲形状**：椭圆形/尖形/方形，可调长宽比和旋转角度
 - **两阶段效果显示**：快速试戴结果 + 异步 AI 分析（后台运行）
 - **LAB 色彩匹配**：自适应肤色的自然色彩混合
 
@@ -34,8 +34,25 @@
 - **25 款精选设计**：包含原始预览图和高质量详细设计图
 - **检测美甲**：上传手部照片，分析肤色、手型、肤质等特征
 - **款式试戴**：预定义设计库一键虚拟试戴
-- **实时热门榜**：小红书热度数据集成
+- **实时热门榜**：B站/抖音/小红书热度数据集成
 - **收藏与追踪**：保存喜爱款式，记录试戴历史
+
+### 📊 智能运营看板（新）
+- **多平台实时热度**：B站公开 API 拉取 25 款对应视频的真实播放量、点赞、收藏、弹幕、投币数，5 分钟自动刷新
+- **热度综合评分**：加权公式 `播放 + 点赞×6 + 收藏×8 + 评论×10 + 弹幕×3 + 投币×6 + 分享×12`
+- **趋势洞察**：自动按裸色/法式/猫眼/春夏/秋冬/闪耀/通勤/甜美/酷感 9 个维度分桶，输出聚合热度、平均互动率和趋势信号（强上升/稳定增长/观察中）
+- **KPI 看板**：实时监控款数、平台总曝光、高意向互动（赞藏评转加权）、今日运营动作数
+- **优先级执行列表**：前 6 款按热度排序，自动打标（主推 / 联动 / 转化 / 上新 / 优化 / 观察）并附操作建议
+- **风险预警**：自动识别低热款、数据缺口款、低互动款，输出具体优化动作
+- **今日执行计划**：09:30 主推上首页 → 11:00 接入 AI 试戴默认款 → 15:30 同风格组合推荐 → 20:30 复盘低热款
+- **可视化趋势图**：Chart.js 混合图（柱状热度 + 折线互动率），支持 Top 8 款对比
+
+### 🤖 AI 运营助手（新）
+- **ModelScope Qwen 驱动**：调用 `Qwen/Qwen3.5-35B-A3B` 大模型，输入 Top 12 款实时热度数据 + 趋势分桶 + 全局汇总
+- **四维运营建议**：输出实时监控、趋势分析、策略生成、效率提升四行可落地建议
+- **可执行动作**：生成 3-5 个带类型标签的运营动作（promote / copywriting / content / audit / data / tryon），OpenClaw-ready 架构
+- **防重复调用**：数据签名未变化时不重复请求 API，节省 token
+- **本地兜底**：无 ModelScope Token 时自动切换本地策略模板，不中断展示
 
 ---
 
@@ -99,25 +116,47 @@ npx http-server -p 5000 --default-file 指上谈兵.html
 | **指甲检测** | YOLOv8-seg (22.8 MB) | 实例分割和指甲定位 |
 | **手部检测** | MediaPipe Hand Landmarker | 手指识别和姿态估计 |
 | **后端框架** | FastAPI | REST API 服务 |
-| **LLM 分析** | Qwen-VL-30B-A3B-Instruct | 美甲搭配分析和推荐 |
-| **LLM 优化** | DeepSeek-V4-Pro API | 提示词优化 |
-| **文生图** | Z-Image-Turbo (豆包) | 快速美甲设计生成 |
+| **LLM 分析** | Qwen/Qwen3-VL-30B-A3B-Instruct | 美甲搭配分析和推荐 |
+| **LLM 优化** | deepseek-ai/DeepSeek-V4-Pro | 提示词优化 |
+| **文生图（灵感试戴）** | Tongyi-MAI/Z-Image-Turbo | 从灵感图生成 5 指模具模板 |
+| **文生图（AI 设计）** | Qwen/Qwen-Image-2512 | AI 设计生成（异步轮询） |
 | **异步生成** | ModelScope API | 异步模具生成和轮询 |
 | **色彩空间** | LAB 色彩混合 | 自然色彩适应 |
+| **运营 AI** | Qwen/Qwen3.5-35B-A3B | 智能运营策略生成 |
+| **热度数据** | B站公开 API | 视频播放/互动实时拉取 |
+| **热度数据** | 关键词热度模型 | 抖音/小红书兜底参考 |
+| **数据库** | Supabase / asyncpg | 账号、收藏、我的设计、用户档案 |
+| **本地分析** | analytics.py | 试戴日志、肤色分布、热门款统计 |
 
 ---
 
 ## 🔌 关键 API 端点
 
 ```
-POST /api/generate-nail-design         # AI 生成设计
-POST /api/confirm-nail-design          # 确认并提取指甲
-POST /api/detect-nails-preview         # 检测用户指甲
-POST /api/confirm-crop                 # 裁剪确认
-POST /api/try-on                       # 虚拟试戴（支持 skip_analysis 快速返回）
-POST /api/analyze-tryon                # 异步 AI 搭配分析（后台执行）
-GET  /api/designs                      # 获取款式库（25+ 款）
-POST /api/generate-mold-from-inspiration # 从灵感图生成模具（新）
+POST /api/generate-nail-design           # AI 生成设计
+POST /api/confirm-nail-design            # 确认并提取指甲
+POST /api/detect-nails-preview           # 检测用户指甲
+POST /api/confirm-crop                   # 裁剪确认
+POST /api/try-on                         # 虚拟试戴（支持 skip_analysis 快速返回）
+POST /api/analyze-tryon                  # 异步 AI 搭配分析（后台执行）
+GET  /api/designs                        # 获取款式库（25+ 款）
+POST /api/generate-mold-from-inspiration # 从灵感图生成模具
+
+# 智能运营
+GET  /api/bilibili/trending-nails        # B站实时热度（25 款视频数据，5min 缓存）
+POST /api/ops/assistant                  # AI 运营助手（Qwen 生成四维建议 + 可执行动作）
+GET  /api/analytics                      # 本地试戴日志汇总（总次数/热门款/肤色分布）
+GET  /api/analytics/design/{design_id}  # 单款试戴统计
+
+# 账号系统
+POST /api/auth/register                  # 注册
+POST /api/auth/login                     # 登录
+GET  /api/wishlist                       # 收藏列表
+POST /api/wishlist                       # 添加收藏
+GET  /api/user-designs                   # 我的设计列表
+POST /api/user-designs                   # 保存设计
+GET  /api/profile                        # 用户档案
+POST /api/profile                        # 更新档案
 ```
 
 ---
@@ -153,8 +192,15 @@ POST /api/generate-mold-from-inspiration # 从灵感图生成模具（新）
 | `scripts/try-on.js` | 虚拟试戴逻辑 |
 | `scripts/image-search.js` | 以图搜款 + 检测美甲 |
 | `scripts/design-gen.js` | AI 设计生成 |
-| `scripts/trending.js` | 热门款式 + 小红书集成 |
+| `scripts/trending.js` | 热门款式 + B站/抖音/小红书数据集成 |
+| `scripts/ops.js` | 智能运营看板（KPI/趋势图/优先级列表/风险预警/执行计划/AI助手） |
+| `scripts/xhs-config.js` | 平台热度端点配置（endpoint / refreshMs） |
+| `scripts/xhs-keyword-heat.js` | 关键词热度兜底数据（30+ 美甲关键词 + 抖音搜索链接） |
 | `scripts/gallery.js` | 款式库渲染和过滤 |
+| `scripts/auth.js` | 登录/注册/退出逻辑 |
+| `scripts/wishlist.js` | 收藏状态与渲染 |
+| `scripts/my-designs.js` | 我的设计页面逻辑 |
+| `scripts/profile.js` | 用户档案页面逻辑 |
 | `scripts/init.js` | 应用启动初始化 |
 
 ### Backend
@@ -165,17 +211,27 @@ POST /api/generate-mold-from-inspiration # 从灵感图生成模具（新）
 | `mold_generator.py` | 灵感图 → 模具生成（Qwen-VL 分析 + Z-Image-Turbo 生成 + 智能裁剪） |
 | `ai_analysis.py` | Qwen-VL 搭配分析和推荐（肤色/手型评估） |
 | `nail_tryon_v2.py` | 试戴算法（形状变换+色彩混合+两阶段显示） |
+| `nail_tryon_v2_extreme.py` | 试戴算法 v2 极端点对齐版（当前使用） |
 | `nail_seg.py` | YOLOv8-seg 指甲分割 + 握拳/张开手识别 |
 | `hand_detector.py` | MediaPipe 手部检测 |
+| `ops_assistant.py` | AI 运营助手（调用 ModelScope Qwen，输出四维建议 + 可执行动作） |
+| `bilibili_stats.py` | B站公开 API 数据拉取（真实播放/互动，5min 缓存，并发请求） |
+| `douyin_stats.py` | 抖音数据适配器（支持授权 API / 导出 JSON / 本地兜底） |
+| `rednote_stats.py` | 小红书数据适配器（支持授权 API / 关键词搜索 / 本地兜底） |
+| `analytics.py` | 本地试戴日志（试戴次数/热门款Top5/肤色分布/今日统计） |
+| `bilibili_sources.json` | 25 款设计各配一条真实 B站 BVID |
+| `rednote_sources.json` | 25 款设计各配关键词 + 小红书搜索链接 |
+| `db/schema_accounts.sql` | 账号表 + 收藏表建表脚本 |
+| `db/schema_user_designs.sql` | 我的设计表建表脚本 |
 | `models/nails_seg_yolov8.pt` | YOLOv8 张开手实例分割模型 |
-| `models/nails_seg_fist.pt` | YOLOv8 握拳手实例分割模型（新） |
+| `models/nails_seg_fist.pt` | YOLOv8 握拳手实例分割模型 |
 | `molds/{design_id}/` | 提取的指甲模具 (PNG，0-4 共 5 个指甲) |
 
 ---
 
 ## 🎯 工作流程
 
-### 1. 灵感试戴流程（新）
+### 1. 灵感试戴流程
 ```
 用户上传灵感图
     ↓
@@ -209,7 +265,7 @@ Qwen 文生图 (5 个指甲并排)
 可立即用于虚拟试戴
 ```
 
-### 3. 虚拟试戴流程（改进）
+### 3. 虚拟试戴流程
 ```
 用户手部照片
     ↓
@@ -229,7 +285,27 @@ YOLO 指甲分割 + 握拳/张开手姿态识别
   - 分析完成后 Toast 通知用户 ✓
 ```
 
-### 4. 款式库预处理
+### 4. 智能运营流程
+```
+前端每 5 分钟自动请求 /api/bilibili/trending-nails
+    ↓
+后端并发拉取 25 条 B站视频公开统计（播放/点赞/收藏/弹幕/投币）
+    ↓
+热度公式加权计算 → 按热度排序
+    ↓
+运营看板渲染（KPI / 趋势图 / 优先级列表 / 风险预警 / 执行计划）
+    ↓
+签名变化时触发 POST /api/ops/assistant
+    ↓
+后端把 Top 12 款数据 + 趋势分桶发给 ModelScope Qwen
+    ↓
+Qwen 输出四维建议（实时监控 / 趋势分析 / 策略生成 / 效率提升）
+    + 3-5 个可执行动作（OpenClaw-ready）
+    ↓
+渲染到 AI 运营助手卡片
+```
+
+### 5. 款式库预处理
 ```
 25+ 款设计 (包含详细设计图)
     ↓
@@ -281,8 +357,18 @@ DEEPSEEK_API_KEY=你的_deepseek_api_key
 - [x] AI 搭配分析（Qwen-VL 多维度评估）
 - [x] 两阶段试戴显示（快速结果 + 异步分析）
 - [x] YOLO 握拳手模型（nails_seg_fist.pt）
-- [x] 25+ 款设计模具库
+- [x] 25 款设计模具库（含 8 款新设计）
 - [x] Toast 实时通知系统
+- [x] 智能运营看板（KPI / 趋势图 / 优先级列表 / 风险预警 / 执行计划）
+- [x] B站实时热度接入（25 款 BVID，真实 API 拉取）
+- [x] AI 运营助手（ModelScope Qwen，四维建议 + 可执行动作）
+- [x] 抖音/小红书热度适配器（授权 API / 关键词兜底）
+- [x] 账号系统（注册/登录，Supabase 存储）
+- [x] 收藏上云（Supabase 持久化）
+- [x] 我的设计页（上传/AI 生成设计管理）
+- [x] 用户档案（肤色、推荐风格）
+- [x] WebP 自动转高质量 JPG（提升试戴效果）
+- [x] 少于 3 个指甲时检测质量警告
 
 ### 下一步改进
 - [ ] 实时视频试戴
@@ -294,13 +380,13 @@ DEEPSEEK_API_KEY=你的_deepseek_api_key
 ### 数据更新
 - 添加新款式：放入 `款式图/` 目录，更新 `designs.json`
 - 更新热门榜：修改 `xhs-keyword-heat.js` 的热度分数
-- 调整试戴效果：在 `nail_tryon_v2.py` 中调参
+- 调整试戴效果：在 `nail_tryon_v2_extreme.py` 中调参
 
 ---
 
 ## Structure
 
-- `指上谈兵.html` - main page markup and app screens
+- `nailai.html` - main page markup and app screens
 - `styles/main.css` - stylesheet entry file with imports
 - `styles/base/` - design tokens and reset styles
 - `styles/layout/` - phone shell, screen layout, top/bottom navigation
@@ -312,48 +398,61 @@ DEEPSEEK_API_KEY=你的_deepseek_api_key
 - `scripts/detail.js` - detail screen interactions
 - `scripts/try-on.js` - AI try-on simulation
 - `scripts/image-search.js` - image search simulation
+- `scripts/ops.js` - intelligent operations dashboard
+- `scripts/auth.js` - login / register / logout
 - `scripts/wishlist.js` - wishlist state and rendering
-- `scripts/profile.js` - profile counters
+- `scripts/my-designs.js` - my designs page
+- `scripts/profile.js` - profile page
+- `scripts/xhs-config.js` - platform trending endpoint config
+- `scripts/xhs-keyword-heat.js` - keyword heat fallback data
 - `scripts/skin-sheet.js` - skin tone sheet interactions
 - `scripts/toast.js` - toast messages
 - `scripts/init.js` - startup calls
 
-Open `指上谈兵.html` in a browser to run the app.
+Open `nailai.html` via an HTTP server to run the app (do not use `file://`).
 
-## 小红书实时热门
+## 平台热度数据说明
 
-今日热门榜不再使用假数据。前端会读取 `scripts/xhs-config.js` 里的 `endpoint`，请求你自己的后端接口，然后按小红书流量指标排序。
+热门榜接入 B站公开 API，端点配置在 `scripts/xhs-config.js`：
 
-前端期望接口返回：
+```js
+const DOUYIN_TRENDING_CONFIG = {
+  endpoint: window.API_BASE + '/api/bilibili/trending-nails',
+  keywordFallback: false,  // 已关闭关键词兜底，使用真实 B站数据
+  refreshMs: 5 * 60 * 1000  // 5 分钟自动刷新
+};
+```
+
+后端 `/api/bilibili/trending-nails` 返回格式：
 
 ```json
 {
-  "updatedAt": "2026-05-24T12:00:00+08:00",
+  "updatedAt": "2026-06-07T12:00:00+08:00",
+  "source": "bilibili-public",
   "items": [
     {
-      "name": "法式星芒裸粉",
-      "sub": "裸粉 · 星光钻饰",
-      "price": "¥229",
-      "image": "款式图/2277d6f9d82264fa6a3c986373e5e44c2292083.webp",
-      "xhsUrl": "https://www.xiaohongshu.com/...",
-      "viewCount": 12000,
-      "likeCount": 880,
-      "collectCount": 360,
-      "commentCount": 96,
-      "noteCount": 42
+      "rank": 1,
+      "id": "design_001",
+      "name": "裸色奶油",
+      "heatScore": 128400,
+      "heat": "12.8w 实时",
+      "platformName": "B站",
+      "platformUrl": "https://www.bilibili.com/video/BV1LvrDY7E1s",
+      "trendSource": "bilibili-public",
+      "rawStats": {
+        "viewCount": 12000,
+        "likeCount": 880,
+        "collectCount": 360,
+        "commentCount": 96,
+        "shareCount": 42,
+        "danmakuCount": 180,
+        "coinCount": 65
+      }
     }
   ]
 }
 ```
 
-如果接口已经计算好热度，可以直接返回 `heatScore`。否则前端会根据浏览、点赞、收藏、评论、笔记数量计算排序。
+### 关键词热度兜底
 
-### 学生版关键词热度
-
-如果没有小红书开发者账号或后端接口，项目会自动启用学生版关键词热度：
-
-- `scripts/xhs-config.js` 里的 `keywordFallback: true`
-- `scripts/xhs-keyword-heat.js` 里维护关键词和 `score`
-- `scripts/xhs-keyword-heat.js` 里的 `XHS_STYLE_KEYWORDS` 会把关键词匹配到本地款式图
-
-这不是官方实时数据，但适合课堂原型和作品展示。要更新榜单，只需要把小红书里观察到更热门的关键词分数调高。
+B站接口失败时，前端自动回退到 `scripts/xhs-keyword-heat.js` 里的关键词热度数据（30+ 美甲关键词，链接到抖音搜索）。要更新兜底榜单，调整对应关键词的 `score` 值即可。
